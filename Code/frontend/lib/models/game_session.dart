@@ -1,3 +1,5 @@
+import 'dart:math';
+import '../services/websocket_service.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 enum GameState { waiting, starting, drawing, roundEnd, gameOver }
@@ -94,16 +96,23 @@ class GameSession {
     required String creatorId,
     required String creatorName,
   }) async {
-    final ref = FirebaseDatabase.instance.ref().child('game_sessions').push();
     final session = GameSession(
-      id: ref.key!,
+      id: _generateId(),
       players: [
         Player(id: creatorId, name: creatorName, isDrawing: true),
       ],
-      state: GameState.waiting, // Explicitly set initial state
+      state: GameState.waiting,
     );
     
-    await ref.set(session.toJson());
+    WebSocketService().sendMessage('create_game', session.id, session.toJson());
     return session;
+  }
+
+  static String _generateId() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    return String.fromCharCodes(
+      Iterable.generate(8, (_) => chars.codeUnitAt(random.nextInt(chars.length)))
+    );
   }
 }

@@ -1,0 +1,17 @@
+{
+  "name": "doodle-backend",
+  "version": "1.0.0",
+  "description": "WebSocket server for Doodle game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "ws": "^8.13.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

@@ -8,12 +8,16 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:doodle/screens/pages/scribble_lobby_screen.dart';
+import 'services/websocket_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase first
   await Firebase.initializeApp();
+
+  // Initialize WebSocket service
+  WebSocketService();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

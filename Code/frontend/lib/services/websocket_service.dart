@@ -1,0 +1,96 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+class WebSocketService {
+  static final WebSocketService _instance = WebSocketService._internal();
+  factory WebSocketService() => _instance;
+
+  WebSocketService._internal() {
+    connect(); // Initialize connection in constructor
+  }
+
+  WebSocketChannel? _channel;
+  bool _isConnected = false;
+  final _gameUpdatesController = StreamController<Map<String, dynamic>>.broadcast();
+  final _gamesListController = StreamController<List<dynamic>>.broadcast();
+
+  bool get isConnected => _isConnected;
+
+  void connect() {
+    if (_isConnected) return;
+
+    try {
+      _channel = WebSocketChannel.connect(
+        Uri.parse('ws://192.168.145.163:8080/ws'),
+      );
+      _isConnected = true;
+
+      _channel!.stream.listen(
+        (message) {
+          try {
+            final data = jsonDecode(message);
+            switch (data['type']) {
+              case 'game_update':
+                _gameUpdatesController.add(data['payload']);
+                break;
+              case 'games_list':
+                _gamesListController.add(data['payload']);
+                break;
+            }
+          } catch (e) {
+            print('Error processing message: $e');
+          }
+        },
+        onError: (error) {
+          print('WebSocket error: $error');
+          _handleDisconnect();
+        },
+        onDone: () {
+          print('WebSocket connection closed');
+          _handleDisconnect();
+        },
+      );
+    } catch (e) {
+      print('Failed to connect: $e');
+      _handleDisconnect();
+    }
+  }
+
+  void _handleDisconnect() {
+    _isConnected = false;
+    // Try to reconnect after a delay
+    Future.delayed(const Duration(seconds: 5), () {
+      if (!_isConnected) connect();
+    });
+  }
+
+  void sendMessage(String type, String gameId, dynamic payload) {
+    if (!_isConnected || _channel == null) {
+      print('Cannot send message: WebSocket not connected');
+      connect(); // Try to reconnect
+      return;
+    }
+
+    try {
+      _channel!.sink.add(jsonEncode({
+        'type': type,
+        'gameId': gameId,
+        'payload': payload,
+      }));
+    } catch (e) {
+      print('Error sending message: $e');
+      _handleDisconnect();
+    }
+  }
+
+  Stream<Map<String, dynamic>> get gameUpdates => _gameUpdatesController.stream;
+  Stream<List<dynamic>> get gamesList => _gamesListController.stream;
+
+  void dispose() {
+    _channel?.sink.close();
+    _gameUpdatesController.close();
+    _gamesListController.close();
+    _isConnected = false;
+  }
+}
