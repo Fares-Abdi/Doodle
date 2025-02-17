@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle; // Add this import
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketService {
@@ -17,12 +18,16 @@ class WebSocketService {
 
   bool get isConnected => _isConnected;
 
-  void connect() {
+  Future<void> connect() async {
     if (_isConnected) return;
 
     try {
+      final configContent = await rootBundle.loadString('assets/config.json'); // Load the config file from assets
+      final config = jsonDecode(configContent);
+      final webSocketServerUrl = config['webSocketServerUrl'];
+
       _channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.145.163:8080/ws'),
+        Uri.parse(webSocketServerUrl),
       );
       _isConnected = true;
 

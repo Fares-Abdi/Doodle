@@ -1,5 +1,11 @@
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+
+// Run setup_config.js
+require('./setup_config');
 
 // Add colors for console logs
 const colors = {
@@ -12,7 +18,36 @@ const colors = {
   cyan: '\x1b[36m'
 };
 
+// Function to get the current IP address, prioritizing Wi-Fi interface
+function getCurrentIPAddress() {
+  const interfaces = os.networkInterfaces();
+  let wifiAddress = null;
+  let fallbackAddress = null;
+
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        if (name.toLowerCase().includes('wi-fi') || name.toLowerCase().includes('wifi')) {
+          wifiAddress = iface.address;
+        } else if (!wifiAddress) {
+          fallbackAddress = iface.address;
+        }
+      }
+    }
+  }
+  return wifiAddress || fallbackAddress || '127.0.0.1';
+}
+
+const currentIP = getCurrentIPAddress();
+const webSocketServerUrl = `ws://${currentIP}:8080`;
+
+// Write the WebSocket server URL to the configuration file
+const configPath = path.join(__dirname, 'config.json');
+fs.writeFileSync(configPath, JSON.stringify({ webSocketServerUrl }, null, 2));
+
 const wss = new WebSocket.Server({ port: 8080 });
+
+log('event', `WebSocket server is running on ${webSocketServerUrl}`);
 
 // Game state storage
 const games = new Map();
@@ -234,5 +269,3 @@ setInterval(() => {
   const clientCount = wss.clients.size;
   log('status', `Server status: ${clientCount} clients connected, ${gameCount} active games`);
 }, 30000);
-
-log('event', `WebSocket server is running on ws://192.168.145.163:8080`);

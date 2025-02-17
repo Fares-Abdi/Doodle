@@ -62,3 +62,4 @@ flutter:
     - assets/images/sord.png
     - assets/images/genback.png
     - assets/images/img2.png
+    - assets/config.json
