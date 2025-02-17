@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:math' show pi, cos, sin;
-import 'dart:async';  // Add this import
-import 'package:firebase_database/firebase_database.dart';
-import '../models/drawing_session.dart';
+import 'dart:async';
 import '../models/game_session.dart';
+import '../services/websocket_service.dart';  // Add this import
 
 class _DrawingPainter extends CustomPainter {
   final List<DrawingPoint?> drawingPoints;
@@ -199,9 +198,7 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
 
   late AnimationController _menuAnimationController;
   late Animation<double> _menuSlideAnimation;
-  late DatabaseReference _sessionRef;
-  bool _isInitialized = false;
- 
+  final WebSocketService _wsService = WebSocketService();  // Add this
 
   final List<Map<String, dynamic>> shapes = [
     {'name': 'Freehand', 'value': 'freehand', 'icon': Icons.edit},
@@ -263,30 +260,15 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
       curve: Curves.easeOut,
     ));
 
-    if (widget.sessionId != null) {
-      _sessionRef = FirebaseDatabase.instance
-          .ref()
-          .child('drawing_sessions')
-          .child(widget.sessionId!);
-      _initializeSession();
-    }
-
     if (widget.gameSession != null) {
-      _sessionRef = FirebaseDatabase.instance
-          .ref()
-          .child('game_sessions')
-          .child(widget.gameSession!.id)
-          .child('drawing_data');
-
-      // Listen to drawing updates
-      _sessionRef.onValue.listen((event) {
+      _wsService.drawingUpdates.listen((data) {
         if (!mounted) return;
-        if (event.snapshot.value == null) return;
-
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        if (data['points'] != null) {
+        if (data['gameId'] != widget.gameSession!.id) return;
+        
+        final drawingData = data['payload'];
+        if (drawingData != null) {
           final List<DrawingPoint?> newPoints = [];
-          for (var point in List<dynamic>.from(data['points'])) {
+          for (var point in List<dynamic>.from(drawingData['points'])) {
             if (point == null || point['isSeparator'] == true) {
               newPoints.add(null);
               continue;
@@ -321,29 +303,6 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
     }
   }
 
-  Future<void> _initializeSession() async {
-    final snapshot = await _sessionRef.get();
-    if (snapshot.exists) {
-      final sessionData = DrawingSession.fromJson(
-        Map<String, dynamic>.from(snapshot.value as Map));
-      setState(() {
-        drawingPoints = sessionData.points
-            .map((p) => p?.toDrawingPoint())
-            .toList();
-        _isInitialized = true;
-      });
-    }
-
-    _sessionRef.child('points').onChildAdded.listen((event) {
-      if (!_isInitialized) return;
-      final pointData = SerializableDrawingPoint.fromJson(
-        Map<String, dynamic>.from(event.snapshot.value as Map));
-      setState(() {
-        drawingPoints.add(pointData.toDrawingPoint());
-      });
-    });
-  }
-
   // Update _syncDrawing method
   void _syncDrawing() {
     if (!isDrawingAllowed || widget.gameSession == null) return;
@@ -370,10 +329,10 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
         };
       }).toList();
 
-      // Update the entire points array
-      _sessionRef.update({
+      // Send drawing update through WebSocket
+      _wsService.sendMessage('drawing_update', widget.gameSession!.id, {
         'points': pointsData,
-        'timestamp': ServerValue.timestamp,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
 
       _pointsBatch.clear();

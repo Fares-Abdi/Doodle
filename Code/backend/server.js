@@ -178,10 +178,11 @@ wss.on('connection', (ws) => {
           if (games.has(gameId)) {
             const game = games.get(gameId);
             game.drawing_data = payload;
+            log('event', `Received drawing update for game ${gameId}`);
             broadcast(gameId, {
-              type: 'game_update',
+              type: 'drawing_update',  // Changed from 'game_update'
               gameId,
-              payload: game
+              payload: game.drawing_data
             });
           }
           break;
