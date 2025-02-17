@@ -286,6 +286,18 @@ wss.on('connection', (ws) => {
           }
           break;
 
+        case 'chat_message':
+          if (games.has(gameId)) {
+            const game = games.get(gameId);
+            log('event', `Chat message in game ${gameId}: ${payload.message}`);
+            broadcast(gameId, {
+              type: 'chat_message',
+              gameId,
+              payload: payload
+            });
+          }
+          break;
+
         default:
           log('error', `Unknown message type: ${type}`);
       }

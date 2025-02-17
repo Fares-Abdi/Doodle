@@ -16,6 +16,7 @@ class WebSocketService {
   final _gameUpdatesController = StreamController<Map<String, dynamic>>.broadcast();
   final _gamesListController = StreamController<List<dynamic>>.broadcast();
   final _drawingUpdatesController = StreamController<Map<String, dynamic>>.broadcast();
+  final _chatMessagesController = StreamController<Map<String, dynamic>>.broadcast();
 
   bool get isConnected => _isConnected;
 
@@ -45,6 +46,9 @@ class WebSocketService {
                 break;
               case 'drawing_update':
                 _drawingUpdatesController.add(data);
+                break;
+              case 'chat_message':
+                _chatMessagesController.add(data);
                 break;
             }
           } catch (e) {
@@ -96,12 +100,14 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get gameUpdates => _gameUpdatesController.stream;
   Stream<List<dynamic>> get gamesList => _gamesListController.stream;
   Stream<Map<String, dynamic>> get drawingUpdates => _drawingUpdatesController.stream;
+  Stream<Map<String, dynamic>> get chatMessages => _chatMessagesController.stream;
 
   void dispose() {
     _channel?.sink.close();
     _gameUpdatesController.close();
     _gamesListController.close();
     _drawingUpdatesController.close();
+    _chatMessagesController.close();
     _isConnected = false;
   }
 }
