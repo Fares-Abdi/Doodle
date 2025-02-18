@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'dart:math' show pi, cos, sin;
+import 'dart:math' show pi, cos, sin, Random;  // Update this line to include Random
 import 'dart:async';
 import '../models/game_session.dart';
 import '../services/websocket_service.dart';  // Add this import
@@ -242,6 +242,9 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
   final List<Map<String, dynamic>> _pointsBatch = [];
   Timer? _syncTimer;
   static const syncInterval = Duration(milliseconds: 100);
+  Set<int> revealedIndices = {};
+  Timer? _hintTimer;
+  final Random _random = Random();
 
   @override
   void initState() {
@@ -301,6 +304,58 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
         }
       });
     }
+    
+    // Start hint timer if player is not drawing
+    _startHintTimer();
+  }
+
+  void _startHintTimer() {
+    _hintTimer?.cancel();
+    revealedIndices.clear();
+    
+    if (widget.gameSession?.currentWord != null && !isDrawingAllowed) {
+      _hintTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+        if (!mounted) return;
+        
+        final word = widget.gameSession!.currentWord!;
+        if (revealedIndices.length >= word.length ~/ 2) {
+          timer.cancel();
+          return;
+        }
+
+        setState(() {
+          // Find unrevealed indices
+          List<int> unrevealedIndices = [];
+          for (int i = 0; i < word.length; i++) {
+            if (!revealedIndices.contains(i) && word[i] != ' ') {
+              unrevealedIndices.add(i);
+            }
+          }
+
+          if (unrevealedIndices.isNotEmpty) {
+            // Reveal a random character
+            final randomIndex = unrevealedIndices[_random.nextInt(unrevealedIndices.length)];
+            revealedIndices.add(randomIndex);
+          }
+        });
+      });
+    }
+  }
+
+  String _getHintText() {
+    if (widget.gameSession?.currentWord == null) return 'Waiting for word...';
+    
+    if (isDrawingAllowed) {
+      return 'Draw: ${widget.gameSession!.currentWord}';
+    }
+
+    final word = widget.gameSession!.currentWord!;
+    return 'Guess: ' + word.split('').asMap().entries.map((entry) {
+      final index = entry.key;
+      final char = entry.value;
+      if (char == ' ') return ' ';
+      return revealedIndices.contains(index) ? char : '_';
+    }).join(' ');
   }
 
   // Update _syncDrawing method
@@ -375,9 +430,18 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
 
   @override
   void dispose() {
+    _hintTimer?.cancel();
     _syncTimer?.cancel();
     _menuAnimationController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(AdvancedDrawingCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.gameSession?.currentWord != widget.gameSession?.currentWord) {
+      _startHintTimer();
+    }
   }
 
 void onPanStart(DragStartDetails details) {
@@ -782,15 +846,12 @@ void onPanStart(DragStartDetails details) {
                   ],
                 ),
                 child: Text(
-                  isDrawingAllowed
-                      ? widget.gameSession!.currentWord != null
-                          ? 'Draw: ${widget.gameSession!.currentWord}'
-                          : 'Waiting for word...'
-                      : 'Guess the word!',
+                  _getHintText(),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: isDrawingAllowed ? Colors.green : Colors.blue,
+                    letterSpacing: 2,
                   ),
                 ),
               ),
