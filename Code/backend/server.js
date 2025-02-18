@@ -54,9 +54,32 @@ const games = new Map();
 const clientToGame = new Map();
 
 const words = [
-  'cat', 'dog', 'house', 'tree', 'car', 'sun', 'moon', 'star',
-  'book', 'phone', 'computer', 'pizza', 'flower', 'bird', 'fish',
-  // ... add more words
+  // Food & Cuisine
+  'couscous', 'chorba', 'bourek', 'zlabia', 'kalb elouz', 'makrout', 'baklawa', 'tchektchouka',
+  'hrira', 'dolma',  'garantita', 'mahjeb', 'kesra',
+
+  // Daily Life & Objects
+  'koursi', 'tabla', 'tberna','sebta', 'gandoura', 'burnous', 'hayek','tarbouche',
+
+  // Nature & Weather
+  'chta', 'chems', 'rih', 'bhar', 'djebel', 'sahara', 'khemsin', 'ghabra',
+  ,'kharif','ghaba', 'trab', 'wad', 'rmel', 'njoum',
+
+  // Places & Locations
+  'souk', 'hammam', 'hanut', 'dar', 'zouj', 'qahoua', 'jame3', 'zanka',
+  'cartier', 'houma', 'baladia', 'saha', 'mdrassa', 'melha', 'chra3', 'marsa',
+
+  // Traditional Items
+ 'derbouka', 'gasba',  'oud',
+  'keskas', 'tajin', 'mhrez', 'meqla', 
+
+  // Modern Life
+  'tilifoun', 'tomobile', 'telefision', 'radio', 'portable', 'ordinateur', 'internet', 'facebook',
+  'taxi','karossa', 'camion', 'metro', 'tram', 'train', 'bus',
+
+  // Animals
+  'kelb', 'djaj', 'begra', 'himar', 'khrouf', 'marza', 'serdouk',
+   'fakroun', 'dib',  'arneb', 'jrana'
 ];
 
 function log(type, message) {
