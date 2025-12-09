@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle; // Add this import
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
@@ -24,9 +25,20 @@ class WebSocketService {
     if (_isConnected) return;
 
     try {
-      final configContent = await rootBundle.loadString('assets/config.json'); // Load the config file from assets
-      final config = jsonDecode(configContent);
-      final webSocketServerUrl = config['webSocketServerUrl'];
+      // First, try to get the URL from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      String? webSocketServerUrl = prefs.getString('webSocketServerUrl');
+
+      // If not found in preferences, load from config.json
+      if (webSocketServerUrl == null) {
+        final configContent = await rootBundle.loadString('assets/config.json');
+        final config = jsonDecode(configContent);
+        webSocketServerUrl = config['webSocketServerUrl'] as String?;
+      }
+
+      if (webSocketServerUrl == null || webSocketServerUrl.isEmpty) {
+        throw Exception('WebSocket URL not configured');
+      }
 
       _channel = WebSocketChannel.connect(
         Uri.parse(webSocketServerUrl),
@@ -76,6 +88,23 @@ class WebSocketService {
     Future.delayed(const Duration(seconds: 5), () {
       if (!_isConnected) connect();
     });
+  }
+
+  Future<void> reconnectWithNewUrl(String newUrl) async {
+    // Close existing connection
+    await disconnect();
+    
+    // Save new URL to preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('webSocketServerUrl', newUrl);
+    
+    // Reconnect with new URL
+    await connect();
+  }
+
+  Future<void> disconnect() async {
+    _channel?.sink.close();
+    _isConnected = false;
   }
 
   void sendMessage(String type, String gameId, dynamic payload) {

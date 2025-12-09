@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/game_service.dart';
+import '../../services/websocket_service.dart';
 import 'game_room_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../../models/game_session.dart'; // Ensure this import exists
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../models/game_session.dart';
+import 'package:uuid/uuid.dart';
 
 class ScribbleLobbyScreen extends StatefulWidget {
   @override
@@ -11,9 +13,11 @@ class ScribbleLobbyScreen extends StatefulWidget {
 
 class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTickerProviderStateMixin {
   final GameService _gameService = GameService();
-  final User? user = FirebaseAuth.instance.currentUser;
   final TextEditingController _gameCodeController = TextEditingController();
+  late String _playerId;
+  late String _playerName;
   bool isPrivate = true;
+  String _webSocketUrl = '';
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -22,6 +26,8 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
   @override
   void initState() {
     super.initState();
+    _initializePlayer();
+    _loadWebSocketUrl();
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -42,6 +48,23 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
     ));
   }
 
+  Future<void> _initializePlayer() async {
+    final prefs = await SharedPreferences.getInstance();
+    _playerId = prefs.getString('playerId') ?? const Uuid().v4();
+    _playerName = prefs.getString('playerName') ?? 'Player ${_playerId.substring(0, 4)}';
+    
+    // Save to preferences if new
+    await prefs.setString('playerId', _playerId);
+    await prefs.setString('playerName', _playerName);
+    
+    setState(() {});
+  }
+
+  Future<void> _loadWebSocketUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    _webSocketUrl = prefs.getString('webSocketServerUrl') ?? 'ws://192.168.200.163:8080';
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -50,16 +73,10 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
   }
 
   Future<void> _createGame() async {
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to create a game')),
-      );
-      return;
-    }
-    // Create game logic (using previous features)
+    // Create game logic
     final session = await GameSession.create(
-      creatorId: user!.uid,
-      creatorName: user!.displayName ?? 'Player ${user!.uid.substring(0, 4)}',
+      creatorId: _playerId,
+      creatorName: _playerName,
     );
     if (context.mounted) {
       Navigator.push(
@@ -67,8 +84,8 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
         MaterialPageRoute(
           builder: (context) => GameRoomScreen(
             gameId: session.id,
-            userId: user!.uid,
-            userName: user!.displayName ?? 'Player ${user!.uid.substring(0, 4)}',
+            userId: _playerId,
+            userName: _playerName,
           ),
         ),
       );
@@ -76,20 +93,14 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
   }
 
   Future<void> _joinGame() async {
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to join a game')),
-      );
-      return;
-    }
     final gameId = _gameCodeController.text.trim();
     if (gameId.isEmpty) return;
-    // Join game logic (using previous features)
+    // Join game logic
     await _gameService.joinGame(
       gameId,
       Player(
-        id: user!.uid,
-        name: user!.displayName ?? 'Player ${user!.uid.substring(0, 4)}',
+        id: _playerId,
+        name: _playerName,
       ),
     );
     if (context.mounted) {
@@ -98,8 +109,8 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
         MaterialPageRoute(
           builder: (context) => GameRoomScreen(
             gameId: gameId,
-            userId: user!.uid,
-            userName: user!.displayName ?? 'Player ${user!.uid.substring(0, 4)}',
+            userId: _playerId,
+            userName: _playerName,
           ),
         ),
       );
@@ -177,8 +188,8 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
                       await _gameService.joinGame(
                         game.id,
                         Player(
-                          id: user!.uid,
-                          name: user!.displayName ?? 'Player ${user!.uid.substring(0, 4)}',
+                          id: _playerId,
+                          name: _playerName,
                         ),
                       );
                       if (context.mounted) {
@@ -187,8 +198,8 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
                           MaterialPageRoute(
                             builder: (context) => GameRoomScreen(
                               gameId: game.id,
-                              userId: user!.uid,
-                              userName: user!.displayName ?? 'Player ${user!.uid.substring(0, 4)}',
+                              userId: _playerId,
+                              userName: _playerName,
                             ),
                           ),
                         );
@@ -341,10 +352,70 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
     );
   }
 
+  void _showServerSettingsDialog() {
+    final TextEditingController urlController = TextEditingController(text: _webSocketUrl);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Server Settings'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('WebSocket Server URL:'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlController,
+              decoration: InputDecoration(
+                hintText: 'ws://192.168.200.163:8080',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newUrl = urlController.text.trim();
+              if (newUrl.isNotEmpty) {
+                await WebSocketService().reconnectWithNewUrl(newUrl);
+                _webSocketUrl = newUrl;
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Server URL updated successfully')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.deepPurple.shade900,
+      appBar: AppBar(
+        backgroundColor: Colors.deepPurple.shade900,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _showServerSettingsDialog,
+            tooltip: 'Server Settings',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [

@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:doodle/screens/auth/forgot_password_screen.dart';
-import 'package:doodle/screens/auth/login_screen.dart';
-import 'package:doodle/screens/auth/signup_screen.dart';
 import 'localization/app_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:doodle/screens/pages/scribble_lobby_screen.dart';
 import 'services/websocket_service.dart';
 
@@ -30,19 +26,8 @@ void main() async {
 }
 
 Future<String> _determineInitialRoute() async {
-  final prefs = await SharedPreferences.getInstance();
-  final bool isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
-  final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-
-  if (isFirstLaunch) {
-    await prefs.setBool('isFirstLaunch', false);
-    return '/signup';
-  }
-
-  if (isLoggedIn) {
-    return '/lobby'; 
-  }
-  return '/login';
+  // Always go directly to lobby - no login required
+  return '/lobby';
 }
 
 class MyApp extends StatefulWidget {
@@ -99,9 +84,6 @@ class _MyAppState extends State<MyApp> {
 
   Map<String, WidgetBuilder> _buildRoutes() {
     return {
-      '/login': (context) => const LoginScreen(),
-      '/signup': (context) => SignInScreen(),
-      '/forgot_password': (context) => ForgotPasswordScreen(),
       '/lobby': (context) => ScribbleLobbyScreen(),
     };
   }
