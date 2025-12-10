@@ -51,7 +51,8 @@ log('event', `WebSocket server is running on ${webSocketServerUrl}`);
 
 // Game state storage
 const games = new Map();
-const clientToGame = new Map();
+const clientToGame = new Map(); // maps ws -> gameId
+const clientToPlayerId = new Map(); // maps ws -> playerId (for disconnect handling)
 
 const words = [
   // Food & Cuisine
@@ -159,14 +160,23 @@ wss.on('connection', (ws) => {
           // Ensure all required properties are set
           const game = {
             ...payload,
+            id: gameId,
+            state: payload.state || 'GameState.waiting',
             roundTime: payload.roundTime || 80,
             roundStartTime: null,
             roundTimer: null,
             prepTimer: null,
+            cleanupTimer: null,
           };
+          // Ensure players array exists
+          game.players = game.players || [];
           games.set(gameId, game);
           clientToGame.set(ws, gameId);
-          log('game', `Game ${gameId} created by ${payload.players[0].name}`);
+          // If creator included in payload.players[0], map their ws to their player id
+          if (payload.players && payload.players[0] && payload.players[0].id) {
+            clientToPlayerId.set(ws, payload.players[0].id);
+          }
+          log('game', `Game ${gameId} created by ${payload.players?.[0]?.name || 'unknown'}`);
           broadcast(gameId, {
             type: 'game_update',
             gameId,
@@ -186,6 +196,7 @@ wss.on('connection', (ws) => {
               }
             }
             clientToGame.set(ws, gameId);
+            clientToPlayerId.set(ws, payload.player.id);
             broadcast(gameId, {
               type: 'game_update',
               gameId,
@@ -297,6 +308,17 @@ wss.on('connection', (ws) => {
           }
           break;
 
+        case 'end_round':
+          if (games.has(gameId)) {
+            const game = games.get(gameId);
+            if (game.state === 'GameState.drawing') {
+              log('game', `End round triggered for game ${gameId}`);
+              clearTimeout(game.roundTimer);
+              transitionToRoundEnd(gameId);
+            }
+          }
+          break;
+
         case 'chat_message':
           if (games.has(gameId)) {
             const game = games.get(gameId);
@@ -319,13 +341,50 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     const gameId = clientToGame.get(ws);
+    const playerId = clientToPlayerId.get(ws);
     log('connection', `Client ${clientId} disconnected${gameId ? ` from game ${gameId}` : ''}`);
     if (gameId && games.has(gameId)) {
       const game = games.get(gameId);
-      // Handle player disconnection
-      // You might want to implement reconnection logic here
+      if (playerId) {
+        const idx = game.players.findIndex(p => p.id === playerId);
+        if (idx !== -1) {
+          const playerName = game.players[idx].name;
+          game.players.splice(idx, 1);
+          log('game', `Player ${playerName} (${playerId}) removed from game ${gameId} due to disconnect`);
+          // If the disconnected player was drawing, rotate drawing flag
+          if (game.players.length > 0 && game.players.every(p => !p.isDrawing)) {
+            // Ensure there's always a drawer (pick first)
+            game.players[0].isDrawing = true;
+          }
+
+          // Broadcast updated game state
+          broadcast(gameId, {
+            type: 'game_update',
+            gameId,
+            payload: game
+          });
+
+          // If no players left, cleanup immediately
+          if (game.players.length === 0) {
+            cleanupGame(gameId);
+          } else if (game.players.length < 2 && game.state !== 'GameState.gameOver') {
+            // Mark as aborted if not enough players to continue
+            game.state = 'GameState.aborted';
+            log('game', `Game ${gameId} aborted due to insufficient players`);
+            broadcast(gameId, {
+              type: 'game_update',
+              gameId,
+              payload: game
+            });
+            // Schedule cleanup after short delay
+            clearTimeout(game.cleanupTimer);
+            game.cleanupTimer = setTimeout(() => cleanupGame(gameId), 30000);
+          }
+        }
+      }
     }
     clientToGame.delete(ws);
+    clientToPlayerId.delete(ws);
   });
 
   ws.on('error', (error) => {
@@ -334,6 +393,8 @@ wss.on('connection', (ws) => {
 });
 
 function startPrepPhase(gameId) {
+  // legacy signature supported: startPrepPhase(gameId) or startPrepPhase(gameId, skipPrep)
+  const skipPrep = arguments[1] === true;
   const game = games.get(gameId);
   if (!game || game.state === 'GameState.gameOver') return;
 
@@ -343,7 +404,7 @@ function startPrepPhase(gameId) {
   game.playersGuessedCorrect = [];
   game.drawing_data = null;
   
-  const currentDrawer = game.players.find(p => p.isDrawing);
+  const currentDrawer = game.players.find(p => p.isDrawing) || { name: 'unknown' };
   log('game', `Prep phase started for game ${gameId}. Drawer: ${currentDrawer.name}, Word: ${game.currentWord}`);
 
   broadcast(gameId, {
@@ -356,7 +417,9 @@ function startPrepPhase(gameId) {
   clearTimeout(game.prepTimer);
   clearTimeout(game.roundTimer);
 
-  // Transition to drawing phase after prep duration
+  const delay = skipPrep ? 300 : PREP_DURATION;
+
+  // Transition to drawing phase after prep duration (shorter between rounds if skipPrep)
   game.prepTimer = setTimeout(() => {
     if (games.has(gameId)) {
       const currentGame = games.get(gameId);
@@ -364,7 +427,7 @@ function startPrepPhase(gameId) {
         startDrawingPhase(gameId);
       }
     }
-  }, PREP_DURATION);
+  }, delay);
 }
 
 function startDrawingPhase(gameId) {
@@ -377,10 +440,14 @@ function startDrawingPhase(gameId) {
   const currentDrawer = game.players.find(p => p.isDrawing);
   log('game', `Drawing phase started for game ${gameId}. Drawer: ${currentDrawer.name}`);
 
+  // Create payload with serverTime reference for accurate client-side timer
+  const payload = cleanGameDataForBroadcast(game);
+  payload.serverTime = Date.now(); // Include server time for client sync
+
   broadcast(gameId, {
     type: 'game_update',
     gameId,
-    payload: game
+    payload: payload
   });
 
   // Clear any existing timers
@@ -436,7 +503,8 @@ function transitionToRoundEnd(gameId) {
       const nextDrawer = game.players[nextDrawerIndex];
       log('game', `Rotating drawer for game ${gameId}. New drawer: ${nextDrawer.name} (Round ${game.currentRound}/${game.maxRounds})`);
       
-      startPrepPhase(gameId);
+      // Use a short prep between rounds to avoid showing a long "start game" screen
+      startPrepPhase(gameId, true);
     }, ROUND_END_DURATION);
   }
 }
@@ -444,17 +512,49 @@ function transitionToRoundEnd(gameId) {
 function endGame(gameId) {
   const game = games.get(gameId);
   if (!game) return;
+  // clear timers
+  clearTimeout(game.roundTimer);
+  clearTimeout(game.prepTimer);
 
   game.state = 'GameState.gameOver';
   game.players.sort((a, b) => b.score - a.score);
   
-  log('game', `Game ${gameId} ended. Winner: ${game.players[0].name} with ${game.players[0].score} points`);
+  log('game', `Game ${gameId} ended. Winner: ${game.players[0]?.name || 'none'} with ${game.players[0]?.score || 0} points`);
 
   broadcast(gameId, {
     type: 'game_update',
     gameId,
     payload: game
   });
+
+  // Schedule cleanup after some time so clients can see results
+  clearTimeout(game.cleanupTimer);
+  game.cleanupTimer = setTimeout(() => cleanupGame(gameId), 60000);
+}
+
+function cleanupGame(gameId) {
+  const game = games.get(gameId);
+  if (!game) return;
+
+  clearTimeout(game.roundTimer);
+  clearTimeout(game.prepTimer);
+  clearTimeout(game.cleanupTimer);
+
+  // Remove client mappings and try to close connections that are associated with this game
+  for (const [client, gid] of clientToGame.entries()) {
+    if (gid === gameId) {
+      clientToGame.delete(client);
+      clientToPlayerId.delete(client);
+      try {
+        if (client && client.readyState === WebSocket.OPEN) client.close();
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+
+  games.delete(gameId);
+  log('event', `Cleaned up game ${gameId}`);
 }
 
 // Add server status logging every 30 seconds

@@ -2,7 +2,7 @@ import 'dart:math';
 import '../services/websocket_service.dart';
 import 'package:firebase_database/firebase_database.dart';
 
-enum GameState { waiting, starting, drawing, roundEnd, gameOver }
+enum GameState { waiting, preparing, drawing, roundEnd, gameOver }
 
 class Player {
   final String id;

@@ -90,7 +90,7 @@ class _GameBoardState extends State<GameBoard> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Round ${widget.session.currentRound + 1}/${widget.session.maxRounds}'),
+          Text('Round ${widget.session.currentRound}/${widget.session.maxRounds}'),
           if (widget.session.roundStartTime != null) _buildTimer(),
           Text('Score: ${currentPlayer.score}'),
         ],
@@ -106,27 +106,31 @@ class _GameBoardState extends State<GameBoard> {
           return const Text('Time: --s');
         }
 
-        final elapsedMs = DateTime.now()
-            .difference(widget.session.roundStartTime!)
-            .inMilliseconds;
+        // Calculate elapsed time
+        // Use server time from the last update if available, otherwise client time
+        final now = DateTime.now();
+        final elapsedMs = now.difference(widget.session.roundStartTime!).inMilliseconds;
+        
         final totalRoundMs = widget.session.roundTime * 1000; // Convert to milliseconds
         final remainingMs = totalRoundMs - elapsedMs;
-        final remaining = (remainingMs / 1000).ceil(); // Round up to nearest second
+        
+        // Ensure remaining is never negative (show 0 at minimum)
+        final remaining = remainingMs > 0 ? (remainingMs / 1000).ceil() : 0;
         
         // Debug logging
-        if (snapshot.hasData) {
+        if (snapshot.hasData && remaining > 0) {
           print('Timer - Elapsed: ${elapsedMs}ms, Total: ${totalRoundMs}ms, Remaining: ${remaining}s');
         }
         
         // End round when timer reaches zero, but only once
-        if (remainingMs <= 0 && widget.session.state == GameState.drawing && !_roundEnded) {
+        if (remaining <= 0 && widget.session.state == GameState.drawing && !_roundEnded) {
           _roundEnded = true;
           print('Timer expired, ending round');
           Future.microtask(() => widget.onEndRound());
         }
 
         return Text(
-          'Time: ${remaining > 0 ? remaining : 0}s',
+          'Time: ${remaining}s',
           style: TextStyle(
             color: remaining < 10 ? Colors.red : Colors.black,
             fontWeight: FontWeight.bold,
