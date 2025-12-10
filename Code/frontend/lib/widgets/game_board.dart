@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../models/game_session.dart';
-import '../../../widgets/advanced_drawing_canvas.dart';
+import 'dart:async';
+import '../models/game_session.dart';
+import 'advanced_drawing_canvas.dart';
 
-class GameBoard extends StatelessWidget {
+class GameBoard extends StatefulWidget {
   final GameSession session;
   final String userId;
   final VoidCallback onEndRound;
@@ -15,8 +16,53 @@ class GameBoard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<GameBoard> createState() => _GameBoardState();
+}
+
+class _GameBoardState extends State<GameBoard> {
+  late StreamController<int> _timerController;
+  Timer? _timer;
+  bool _roundEnded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _timerController = StreamController<int>.broadcast();
+    _startTimer();
+  }
+
+  @override
+  void didUpdateWidget(GameBoard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset the round ended flag when the session changes
+    if (oldWidget.session.state != widget.session.state) {
+      _roundEnded = false;
+    }
+    // Restart timer if the round start time changed
+    if (oldWidget.session.roundStartTime != widget.session.roundStartTime) {
+      _timer?.cancel();
+      _startTimer();
+    }
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) {
+        _timerController.add(DateTime.now().millisecondsSinceEpoch);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _timerController.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final currentPlayer = session.players.firstWhere((p) => p.id == userId);
+    final currentPlayer = widget.session.players.firstWhere((p) => p.id == widget.userId);
 
     return Container(
       decoration: BoxDecoration(
@@ -44,8 +90,8 @@ class GameBoard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Round ${session.currentRound + 1}/${session.maxRounds}'),
-          if (session.roundStartTime != null) _buildTimer(),
+          Text('Round ${widget.session.currentRound + 1}/${widget.session.maxRounds}'),
+          if (widget.session.roundStartTime != null) _buildTimer(),
           Text('Score: ${currentPlayer.score}'),
         ],
       ),
@@ -53,17 +99,30 @@ class GameBoard extends StatelessWidget {
   }
 
   Widget _buildTimer() {
-    return StreamBuilder(
-      stream: Stream.periodic(const Duration(seconds: 1)),
+    return StreamBuilder<int>(
+      stream: _timerController.stream,
       builder: (context, snapshot) {
-        final remaining = session.roundTime -
-            DateTime.now()
-                .difference(session.roundStartTime!)
-                .inSeconds;
+        if (widget.session.roundStartTime == null) {
+          return const Text('Time: --s');
+        }
+
+        final elapsedMs = DateTime.now()
+            .difference(widget.session.roundStartTime!)
+            .inMilliseconds;
+        final totalRoundMs = widget.session.roundTime * 1000; // Convert to milliseconds
+        final remainingMs = totalRoundMs - elapsedMs;
+        final remaining = (remainingMs / 1000).ceil(); // Round up to nearest second
         
-        // End round when timer reaches zero
-        if (remaining <= 0 && session.state == GameState.drawing) {
-          onEndRound();
+        // Debug logging
+        if (snapshot.hasData) {
+          print('Timer - Elapsed: ${elapsedMs}ms, Total: ${totalRoundMs}ms, Remaining: ${remaining}s');
+        }
+        
+        // End round when timer reaches zero, but only once
+        if (remainingMs <= 0 && widget.session.state == GameState.drawing && !_roundEnded) {
+          _roundEnded = true;
+          print('Timer expired, ending round');
+          Future.microtask(() => widget.onEndRound());
         }
 
         return Text(
@@ -97,8 +156,8 @@ class GameBoard extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: AdvancedDrawingCanvas(
-                userId: userId,
-                gameSession: session,
+                userId: widget.userId,
+                gameSession: widget.session,
               ),
             ),
           ),

@@ -103,6 +103,8 @@ function log(type, message) {
 }
 
 const ROUND_DURATION = 80000; // 80 seconds per round
+const PREP_DURATION = 3000;   // 3 seconds preparation time
+const ROUND_END_DURATION = 2000; // 2 seconds between rounds
 const POINTS_FOR_CORRECT_GUESS = 100;
 const POINTS_FOR_DRAWING = 50;
 
@@ -113,7 +115,6 @@ function cleanGameDataForBroadcast(game) {
     players: game.players,
     state: game.state,
     currentWord: game.currentWord,
-    roundTime: game.roundTime,
     currentRound: game.currentRound,
     maxRounds: game.maxRounds,
     roundStartTime: game.roundStartTime,
@@ -155,7 +156,15 @@ wss.on('connection', (ws) => {
 
       switch (type) {
         case 'create_game':
-          games.set(gameId, payload);
+          // Ensure all required properties are set
+          const game = {
+            ...payload,
+            roundTime: payload.roundTime || 80,
+            roundStartTime: null,
+            roundTimer: null,
+            prepTimer: null,
+          };
+          games.set(gameId, game);
           clientToGame.set(ws, gameId);
           log('game', `Game ${gameId} created by ${payload.players[0].name}`);
           broadcast(gameId, {
@@ -190,34 +199,27 @@ wss.on('connection', (ws) => {
         case 'start_game':
           if (games.has(gameId)) {
             const game = games.get(gameId);
-            game.state = 'GameState.drawing';
-            game.currentWord = getRandomWord();
-            game.roundStartTime = Date.now();
-            game.currentRound = 0;
             // Set maxRounds equal to number of players
             game.maxRounds = game.players.length;
             // Initialize first drawer
             game.players.forEach((p, i) => p.isDrawing = i === 0);
+            game.currentRound = 1;
+            game.playersGuessedCorrect = [];
+            game.state = 'GameState.preparing';
             log('game', `Game ${gameId} started. Total rounds: ${game.maxRounds}`);
-            broadcast(gameId, {
-              type: 'game_update',
-              gameId,
-              payload: game
-            });
+            
+            // Start the first round properly
+            startPrepPhase(gameId);
           }
           break;
 
         case 'submit_guess':
           if (games.has(gameId)) {
             const game = games.get(gameId);
-            if (game.currentWord?.toLowerCase() === payload.guess.toLowerCase()) {
+            if (game.state === 'GameState.drawing' && game.currentWord?.toLowerCase() === payload.guess.toLowerCase()) {
               const playerIndex = game.players.findIndex(p => p.id === payload.playerId);
               if (playerIndex !== -1) {
                 game.players[playerIndex].score += 100;
-                
-                // Handle round end
-                endRound(gameId);
-                setTimeout(() => startNewRound(gameId), 3000);
               }
             }
             broadcast(gameId, {
@@ -231,13 +233,15 @@ wss.on('connection', (ws) => {
         case 'drawing_update':
           if (games.has(gameId)) {
             const game = games.get(gameId);
-            game.drawing_data = payload;
-            log('event', `Received drawing update for game ${gameId}`);
-            broadcast(gameId, {
-              type: 'drawing_update',  // Changed from 'game_update'
-              gameId,
-              payload: game.drawing_data
-            });
+            if (game.state === 'GameState.drawing') {
+              game.drawing_data = payload;
+              log('event', `Received drawing update for game ${gameId}`);
+              broadcast(gameId, {
+                type: 'drawing_update',
+                gameId,
+                payload: game.drawing_data
+              });
+            }
           }
           break;
 
@@ -253,6 +257,8 @@ wss.on('connection', (ws) => {
         case 'correct_guess':
           if (games.has(gameId)) {
             const game = games.get(gameId);
+            if (game.state !== 'GameState.drawing') break; // Ignore guesses outside drawing phase
+            
             const { playerId } = payload;
             
             // Check if player hasn't already guessed correctly
@@ -277,14 +283,9 @@ wss.on('connection', (ws) => {
               // Check if everyone except drawer has guessed
               const nonDrawingPlayers = game.players.filter(p => !p.isDrawing);
               if (game.playersGuessedCorrect.length === nonDrawingPlayers.length) {
-                // Clear any existing timers
+                // End round early if everyone guessed
                 clearTimeout(game.roundTimer);
-                // End round if everyone has guessed
-                endRound(gameId);
-                // Only start new round if game isn't over
-                if (game.state !== 'GameState.gameOver') {
-                  setTimeout(() => startNewRound(gameId), 3000);
-                }
+                transitionToRoundEnd(gameId);
               }
   
               broadcast(gameId, {
@@ -293,19 +294,6 @@ wss.on('connection', (ws) => {
                 payload: game
               });
             }
-          }
-          break;
-  
-        case 'end_round':
-          if (games.has(gameId)) {
-            endRound(gameId);
-            setTimeout(() => startNewRound(gameId), 3000);
-          }
-          break;
-  
-        case 'start_new_round':
-          if (games.has(gameId)) {
-            startNewRound(gameId);
           }
           break;
 
@@ -345,93 +333,133 @@ wss.on('connection', (ws) => {
   });
 });
 
-function endRound(gameId) {
+function startPrepPhase(gameId) {
   const game = games.get(gameId);
-  if (!game) return;
+  if (!game || game.state === 'GameState.gameOver') return;
 
-  const currentDrawerIndex = game.players.findIndex(p => p.isDrawing);
-  const nextDrawerIndex = (currentDrawerIndex + 1) % game.players.length;
-  
-  // Update round counter
-  if (nextDrawerIndex === 0) {
-    game.currentRound++;
-    log('game', `Round ${game.currentRound} completed in game ${gameId}`);
-  }
-
-  // Check if game should end BEFORE updating state
-  if (game.currentRound >= game.maxRounds && nextDrawerIndex === 0) {
-    game.state = 'GameState.gameOver';
-    game.players.sort((a, b) => b.score - a.score);
-    log('game', `Game ${gameId} ended. Winner: ${game.players[0].name} with ${game.players[0].score} points`);
-    
-    broadcast(gameId, {
-      type: 'game_update',
-      gameId,
-      payload: game
-    });
-    return; // Exit early if game is over
-  }
-
-  // Update game state
-  game.state = 'GameState.roundEnd';
-  game.drawing_data = null;
-  game.currentWord = null;
+  game.state = 'GameState.preparing';
+  game.currentWord = getRandomWord();
   game.roundStartTime = null;
   game.playersGuessedCorrect = [];
-
-  // Rotate drawer
-  game.players[currentDrawerIndex].isDrawing = false;
-  game.players[nextDrawerIndex].isDrawing = true;
-
-  const nextDrawer = game.players[nextDrawerIndex];
-  log('game', `Turn ended in game ${gameId}. Next drawer: ${nextDrawer.name} (Round ${Math.floor(game.currentRound + 1)}/${game.maxRounds})`);
+  game.drawing_data = null;
+  
+  const currentDrawer = game.players.find(p => p.isDrawing);
+  log('game', `Prep phase started for game ${gameId}. Drawer: ${currentDrawer.name}, Word: ${game.currentWord}`);
 
   broadcast(gameId, {
     type: 'game_update',
     gameId,
     payload: game
   });
+
+  // Clear any existing timers
+  clearTimeout(game.prepTimer);
+  clearTimeout(game.roundTimer);
+
+  // Transition to drawing phase after prep duration
+  game.prepTimer = setTimeout(() => {
+    if (games.has(gameId)) {
+      const currentGame = games.get(gameId);
+      if (currentGame.state === 'GameState.preparing') {
+        startDrawingPhase(gameId);
+      }
+    }
+  }, PREP_DURATION);
 }
 
-function startNewRound(gameId) {
+function startDrawingPhase(gameId) {
   const game = games.get(gameId);
   if (!game || game.state === 'GameState.gameOver') return;
 
   game.state = 'GameState.drawing';
-  game.currentWord = getRandomWord();
   game.roundStartTime = Date.now();
-  game.playersGuessedCorrect = [];
   
   const currentDrawer = game.players.find(p => p.isDrawing);
-  log('game', `New round started in game ${gameId}. Drawer: ${currentDrawer.name}, Word: ${game.currentWord}`);
+  log('game', `Drawing phase started for game ${gameId}. Drawer: ${currentDrawer.name}`);
 
-  // First broadcast the game update
   broadcast(gameId, {
     type: 'game_update',
     gameId,
     payload: game
   });
 
-  // Then set up the timer
-  clearTimeout(game.roundTimer); // Clear any existing timer
+  // Clear any existing timers
+  clearTimeout(game.roundTimer);
+
+  // Set up timer for round end
   game.roundTimer = setTimeout(() => {
     if (games.has(gameId)) {
       const currentGame = games.get(gameId);
       if (currentGame.state === 'GameState.drawing' && 
           currentGame.roundStartTime === game.roundStartTime) {
         log('game', `Round time expired in game ${gameId}`);
-        endRound(gameId);
-        if (currentGame.state !== 'GameState.gameOver') {
-          setTimeout(() => startNewRound(gameId), 3000);
-        }
+        transitionToRoundEnd(gameId);
       }
     }
   }, ROUND_DURATION);
+}
+
+function transitionToRoundEnd(gameId) {
+  const game = games.get(gameId);
+  if (!game) return;
+
+  // Clear timers
+  clearTimeout(game.roundTimer);
+  clearTimeout(game.prepTimer);
+
+  game.state = 'GameState.roundEnd';
+  game.drawing_data = null;
+  game.roundStartTime = null;
+
+  const currentDrawerIndex = game.players.findIndex(p => p.isDrawing);
+  const currentDrawer = game.players[currentDrawerIndex];
+  
+  log('game', `Round ${game.currentRound} ended in game ${gameId}. Drawer was: ${currentDrawer.name}`);
+
+  broadcast(gameId, {
+    type: 'game_update',
+    gameId,
+    payload: game
+  });
+
+  // Check if game should end
+  if (game.currentRound >= game.maxRounds) {
+    setTimeout(() => endGame(gameId), ROUND_END_DURATION);
+  } else {
+    // Rotate to next round
+    setTimeout(() => {
+      game.currentRound++;
+      const nextDrawerIndex = (currentDrawerIndex + 1) % game.players.length;
+      game.players[currentDrawerIndex].isDrawing = false;
+      game.players[nextDrawerIndex].isDrawing = true;
+      
+      const nextDrawer = game.players[nextDrawerIndex];
+      log('game', `Rotating drawer for game ${gameId}. New drawer: ${nextDrawer.name} (Round ${game.currentRound}/${game.maxRounds})`);
+      
+      startPrepPhase(gameId);
+    }, ROUND_END_DURATION);
+  }
+}
+
+function endGame(gameId) {
+  const game = games.get(gameId);
+  if (!game) return;
+
+  game.state = 'GameState.gameOver';
+  game.players.sort((a, b) => b.score - a.score);
+  
+  log('game', `Game ${gameId} ended. Winner: ${game.players[0].name} with ${game.players[0].score} points`);
+
+  broadcast(gameId, {
+    type: 'game_update',
+    gameId,
+    payload: game
+  });
 }
 
 // Add server status logging every 30 seconds
 setInterval(() => {
   const gameCount = games.size;
   const clientCount = wss.clients.size;
-  log('status', `Server status: ${clientCount} clients connected, ${gameCount} active games`);
+  log('event', `Server status: ${clientCount} clients connected, ${gameCount} active games`);
 }, 30000);
