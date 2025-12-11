@@ -166,13 +166,24 @@ class AdvancedDrawingCanvas extends StatefulWidget {
     this.initialStrokeWidth = 5.0,
     this.colors = const [
       Colors.black,
+      Colors.white,
       Colors.red,
-      Colors.blue,
-      Colors.green,
-      Colors.yellow,
+      Colors.pink,
       Colors.purple,
+      Colors.deepPurple,
+      Colors.indigo,
+      Colors.blue,
+      Colors.cyan,
+      Colors.teal,
+      Colors.green,
+      Colors.lightGreen,
+      Colors.lime,
+      Colors.yellow,
+      Colors.amber,
       Colors.orange,
+      Colors.deepOrange,
       Colors.brown,
+      Colors.grey,
     ],
     this.strokeWeights = const [2, 4, 6, 8, 10, 12, 16, 20],
     this.onDrawingComplete,
@@ -190,9 +201,7 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
   List<DrawingPoint?> drawingPoints = [];
   List<DrawingPoint?> redoStack = [];
   String selectedShape = 'freehand';
-  bool isFillMode = false;
   bool isColorMenuOpen = false;
-  bool isStrokeMenuOpen = false;
   DrawingPoint? startPoint;
   Offset? currentDragPosition;
 
@@ -200,15 +209,7 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
   late Animation<double> _menuSlideAnimation;
   final WebSocketService _wsService = WebSocketService();  // Add this
 
-  final List<Map<String, dynamic>> shapes = [
-    {'name': 'Freehand', 'value': 'freehand', 'icon': Icons.edit},
-    {'name': 'Line', 'value': 'line', 'icon': Icons.horizontal_rule},
-    {'name': 'Rectangle', 'value': 'rectangle', 'icon': Icons.rectangle_outlined},
-    {'name': 'Circle', 'value': 'circle', 'icon': Icons.circle_outlined},
-    {'name': 'Triangle', 'value': 'triangle', 'icon': Icons.change_history},
-    {'name': 'Star', 'value': 'star', 'icon': Icons.star_border},
-    {'name': 'Diamond', 'value': 'diamond', 'icon': Icons.diamond_outlined},
-  ];
+  // Removed shapes list - only freehand and eraser
 
   bool get isDrawingAllowed => 
       widget.gameSession == null || 
@@ -346,7 +347,7 @@ class AdvancedDrawingCanvasState extends State<AdvancedDrawingCanvas>
     if (widget.gameSession?.currentWord == null) return 'Waiting for word...';
     
     if (isDrawingAllowed) {
-      return 'Draw: ${widget.gameSession!.currentWord}';
+      return '';
     }
 
     final word = widget.gameSession!.currentWord!;
@@ -458,9 +459,7 @@ void onPanStart(DragStartDetails details) {
         ..isAntiAlias = true
         ..strokeWidth = selectedShape == 'eraser' ? strokeWidth * 3 : strokeWidth
         ..strokeCap = StrokeCap.round
-        ..style = selectedShape == 'freehand' || selectedShape == 'eraser' 
-            ? PaintingStyle.stroke 
-            : (isFillMode ? PaintingStyle.fill : PaintingStyle.stroke),
+        ..style = PaintingStyle.stroke,
     );
     setState(() {
       currentDragPosition = details.localPosition;
@@ -527,179 +526,96 @@ void onPanStart(DragStartDetails details) {
 
 
 
-     Widget buildStrokeWeightButton(double weight) {
-    return GestureDetector(
-      onTap: () => setState(() {
-        strokeWidth = weight;
-        isStrokeMenuOpen = false;
-        _menuAnimationController.reverse();
-      }),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        width: 160,
-        height: 40,
-        decoration: BoxDecoration(
-          color: strokeWidth == weight ? selectedColor.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: strokeWidth == weight ? selectedColor : Colors.grey.shade300,
-            width: 2,
-          ),
-        ),
-        child: Center(
-          child: Container(
-            width: 100,
-            height: weight,
-            decoration: BoxDecoration(
-              color: selectedColor,
-              borderRadius: BorderRadius.circular(weight / 2),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
 
   Widget buildSpeedDial() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(  // Changed from Column to Row
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          // Main floating buttons
-          Column(  // Changed from Row to Column
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FloatingActionButton(
-                heroTag: 'stroke',
-                mini: true,
-                child: const Icon(Icons.line_weight),
-                onPressed: () {
-                  setState(() => isStrokeMenuOpen = !isStrokeMenuOpen);
-                  if (isStrokeMenuOpen) {
-                    isColorMenuOpen = false;
-                    _menuAnimationController.forward();
-                  } else {
-                    _menuAnimationController.reverse();
-                  }
-                },
-                backgroundColor: isStrokeMenuOpen ? selectedColor : Colors.white,
-                foregroundColor: isStrokeMenuOpen ? Colors.white : Colors.grey[800],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Color menu - Vertical and scrollable
+        if (isColorMenuOpen)
+          AnimatedBuilder(
+            animation: _menuAnimationController,
+            builder: (context, child) => Transform.translate(
+              offset: Offset(0, _menuSlideAnimation.value),
+              child: child,
+            ),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              FloatingActionButton(
-                heroTag: 'color',
-                child: Icon(
-                  Icons.color_lens,
-                  color: isColorMenuOpen ? Colors.white : selectedColor,
-                ),
-                onPressed: () {
-                  setState(() => isColorMenuOpen = !isColorMenuOpen);
-                  if (isColorMenuOpen) {
-                    isStrokeMenuOpen = false;
-                    _menuAnimationController.forward();
-                  } else {
-                    _menuAnimationController.reverse();
-                  }
-                },
-                backgroundColor: isColorMenuOpen ? selectedColor : Colors.white,
+              constraints: const BoxConstraints(
+                maxHeight: 300,
+                maxWidth: 80,
               ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          // Menus
-          Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Stroke width menu
-              if (isStrokeMenuOpen)
-                AnimatedBuilder(
-                  animation: _menuAnimationController,
-                  builder: (context, child) => Transform.translate(
-                    offset: Offset(0, _menuSlideAnimation.value),  // Changed to vertical offset
-                    child: child,
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: strokeWeights
-                          .map((weight) => buildStrokeWeightButton(weight))
-                          .toList(),
-                    ),
-                  ),
-                ),
-              // Color menu
-              if (isColorMenuOpen)
-                AnimatedBuilder(
-                  animation: _menuAnimationController,
-                  builder: (context, child) => Transform.translate(
-                    offset: Offset(0, _menuSlideAnimation.value),  // Changed to vertical offset
-                    child: child,
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Column(  // Changed from Wrap to Column
-                      mainAxisSize: MainAxisSize.min,
-                      children: widget.colors.map((color) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: GestureDetector(
-                          onTap: () => setState(() {
-                            selectedColor = color;
-                            isColorMenuOpen = false;
-                            _menuAnimationController.reverse();
-                          }),
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: selectedColor == color ? Colors.white : Colors.transparent,
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 4,
-                                ),
-                              ],
-                            ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: widget.colors.map((color) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: GestureDetector(
+                      onTap: () => setState(() {
+                        selectedColor = color;
+                        isColorMenuOpen = false;
+                        _menuAnimationController.reverse();
+                      }),
+                      child: Container(
+                        width: 50,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: selectedColor == color 
+                                ? Colors.black 
+                                : Colors.grey.shade300,
+                            width: selectedColor == color ? 2 : 1,
                           ),
+                          boxShadow: [
+                            if (selectedColor == color)
+                              BoxShadow(
+                                color: color.withOpacity(0.4),
+                                blurRadius: 6,
+                                spreadRadius: 0,
+                              ),
+                          ],
                         ),
-                      )).toList(),
+                      ),
                     ),
-                  ),
+                  )).toList(),
                 ),
-            ],
+              ),
+            ),
           ),
-        ],
-      ),
+        // Color button only
+        FloatingActionButton(
+          heroTag: 'color',
+          mini: true,
+          elevation: isColorMenuOpen ? 8 : 4,
+          backgroundColor: selectedColor,
+          foregroundColor: Colors.white,
+          onPressed: () {
+            setState(() => isColorMenuOpen = !isColorMenuOpen);
+            if (isColorMenuOpen) {
+              _menuAnimationController.forward();
+            } else {
+              _menuAnimationController.reverse();
+            }
+          },
+          child: const Icon(Icons.palette),
+        ),
+      ],
     );
   }
 
@@ -733,89 +649,121 @@ void onPanStart(DragStartDetails details) {
         // Only show tools if user is allowed to draw
         if (isDrawingAllowed) ...[
           Positioned(
-            top: 40,
-            left: 20,
-            right: 20,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Shapes selector
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
-                        blurRadius: 5,
-                        spreadRadius: 1,
+            top: 16,
+            left: 12,
+            right: 12,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.shade600,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.deepPurple.withOpacity(0.3),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Draw/Eraser toggle
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: selectedShape == 'freehand' 
+                              ? Colors.white.withOpacity(0.3) 
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selectedShape == 'freehand' 
+                                ? Colors.white 
+                                : Colors.white.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.edit),
+                          color: Colors.white,
+                          iconSize: 20,
+                          padding: const EdgeInsets.all(6),
+                          constraints: const BoxConstraints(),
+                          onPressed: () => setState(() => selectedShape = 'freehand'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: selectedShape == 'eraser' 
+                              ? Colors.white.withOpacity(0.3) 
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selectedShape == 'eraser' 
+                                ? Colors.white 
+                                : Colors.white.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.cleaning_services),
+                          color: Colors.white,
+                          iconSize: 20,
+                          padding: const EdgeInsets.all(6),
+                          constraints: const BoxConstraints(),
+                          onPressed: () => setState(() => selectedShape = 'eraser'),
+                        ),
                       ),
                     ],
                   ),
-                  child: PopupMenuButton<String>(
-                    initialValue: selectedShape,
-                    onSelected: (String value) {
-                      setState(() => selectedShape = value);
-                    },
-                    itemBuilder: (BuildContext context) => shapes.map((shape) {
-                      return PopupMenuItem<String>(
-                        value: shape['value'],
-                        child: Row(
-                          children: [
-                            Icon(
-                              shape['icon'],
-                              color: selectedShape == shape['value'] 
-                                  ? selectedColor 
-                                  : Colors.grey,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(shape['name']),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            shapes.firstWhere((s) => s['value'] == selectedShape)['icon'],
-                            color: selectedColor,
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_drop_down),
-                        ],
+                  // Undo/Redo/Clear
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.undo),
+                        color: Colors.white,
+                        iconSize: 20,
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
+                        onPressed: undo,
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.redo),
+                        color: Colors.white,
+                        iconSize: 20,
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
+                        onPressed: redo,
+                      ),
+                      const SizedBox(width: 4),
+                      Container(
+                        width: 1,
+                        height: 20,
+                        color: Colors.white.withOpacity(0.3),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        color: Colors.white,
+                        iconSize: 20,
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
+                        onPressed: clearCanvas,
+                      ),
+                    ],
                   ),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(isFillMode ? Icons.format_color_fill : Icons.format_color_reset),
-                      color: isFillMode ? selectedColor : Colors.grey,
-                      onPressed: () => setState(() => isFillMode = !isFillMode),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.undo),
-                      onPressed: undo,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.redo),
-                      onPressed: redo,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        clearCanvas();
-                      },
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+        ],
+        // Control panels at bottom right
+        if (isDrawingAllowed) ...[
           Positioned(
             right: 16,
             bottom: 16,
@@ -823,8 +771,8 @@ void onPanStart(DragStartDetails details) {
           ),
         ],
 
-        // Show word display on top
-        if (widget.gameSession != null)
+        // Show word display on top - only when there's actual text
+        if (widget.gameSession != null && _getHintText().isNotEmpty)
           Positioned(
             top: 8,
             left: 0,
