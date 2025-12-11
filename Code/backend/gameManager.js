@@ -28,6 +28,34 @@ const words = [
 let wss = null;
 function setWss(server) {
   wss = server;
+  // Start periodic check for empty games
+  startEmptyGameCheck();
+}
+
+// Check every 1 second for games with no players and delete them
+function startEmptyGameCheck() {
+  setInterval(() => {
+    const gamesToDelete = [];
+    for (const [gameId, game] of games.entries()) {
+      // Check if game has no players (regardless of state)
+      if (!game.players || game.players.length === 0) {
+        // If in waiting state, immediately delete
+        if (game.state === 'GameState.waiting') {
+          log('game', `Deleting empty game ${gameId} from waiting state`);
+          gamesToDelete.push(gameId);
+        }
+        // If in other states, abort and cleanup
+        else if (game.state !== 'GameState.aborted') {
+          log('game', `Aborting empty game ${gameId} (state: ${game.state})`);
+          game.state = 'GameState.aborted';
+          broadcast(gameId, { type: 'game_update', gameId, payload: game });
+          gamesToDelete.push(gameId);
+        }
+      }
+    }
+    // Clean up all marked games
+    gamesToDelete.forEach(gameId => cleanupGame(gameId));
+  }, 1000);  // Check every 1 second for faster detection
 }
 
 function cleanGameDataForBroadcast(game) {

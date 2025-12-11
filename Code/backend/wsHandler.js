@@ -61,6 +61,43 @@ wss.on('connection', (ws) => {
           break;
         }
 
+        case 'leave_game': {
+          if (gameId && gm.games.has(gameId)) {
+            const game = gm.games.get(gameId);
+            const playerId = gm.clientToPlayerId.get(ws);
+            if (playerId) {
+              const idx = game.players.findIndex(p => p.id === playerId);
+              if (idx !== -1) {
+                const playerName = game.players[idx].name;
+                game.players.splice(idx, 1);
+                log('game', `Player ${playerName} (${playerId}) left game ${gameId}`);
+                
+                // Handle empty game
+                if (game.players.length === 0) {
+                  if (game.state === 'GameState.waiting') {
+                    log('game', `Game ${gameId} is now empty - cleanup`);
+                    gm.cleanupGame(gameId);
+                  } else {
+                    game.state = 'GameState.aborted';
+                    gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
+                    clearTimeout(game.cleanupTimer);
+                    game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 5000);
+                  }
+                } else if (game.players.length < 2 && game.state !== 'GameState.gameOver') {
+                  game.state = 'GameState.aborted';
+                  log('game', `Game ${gameId} aborted - insufficient players`);
+                  gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
+                  clearTimeout(game.cleanupTimer);
+                  game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 5000);
+                } else {
+                  gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
+                }
+              }
+            }
+          }
+          break;
+        }
+
         case 'start_game': {
           if (gm.games.has(gameId)) {
             const game = gm.games.get(gameId);
@@ -102,7 +139,13 @@ wss.on('connection', (ws) => {
         }
 
         case 'get_games': {
-          const availableGames = Array.from(gm.games.values()).filter(game => game.state === 'GameState.waiting' && game.players.length < 3);
+          const availableGames = Array.from(gm.games.values()).filter(game => 
+            game.state === 'GameState.waiting' && 
+            game.players && 
+            game.players.length > 0 &&
+            game.players.length < 8
+          );
+          log('event', `Retrieved ${availableGames.length} available games`);
           ws.send(JSON.stringify({ type: 'games_list', payload: availableGames }));
           break;
         }
@@ -170,30 +213,56 @@ wss.on('connection', (ws) => {
     const gameId = gm.clientToGame.get(ws);
     const playerId = gm.clientToPlayerId.get(ws);
     log('connection', `Client ${clientId} disconnected${gameId ? ` from game ${gameId}` : ''}`);
+    
     if (gameId && gm.games.has(gameId)) {
       const game = gm.games.get(gameId);
       if (playerId) {
         const idx = game.players.findIndex(p => p.id === playerId);
         if (idx !== -1) {
           const playerName = game.players[idx].name;
+          const wasCreator = game.players[idx].isCreator;
           game.players.splice(idx, 1);
           log('game', `Player ${playerName} (${playerId}) removed from game ${gameId} due to disconnect`);
+          
+          // If creator left, pass the creator role to the next player
+          if (wasCreator && game.players.length > 0) {
+            game.players[0].isCreator = true;
+            log('game', `Creator role passed to ${game.players[0].name} in game ${gameId}`);
+          }
+          
           if (game.players.length > 0 && game.players.every(p => !p.isDrawing)) {
             game.players[0].isDrawing = true;
           }
-          gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
+          
+          // Check if game is empty
           if (game.players.length === 0) {
-            gm.cleanupGame(gameId);
-          } else if (game.players.length < 2 && game.state !== 'GameState.gameOver') {
+            // If game is in waiting state, immediately cleanup (no broadcast needed)
+            if (game.state === 'GameState.waiting') {
+              log('game', `Game ${gameId} is now empty - immediate cleanup`);
+              gm.cleanupGame(gameId);
+            } else {
+              // Otherwise, abort and cleanup after a delay
+              log('game', `Game ${gameId} is now empty - aborting and scheduling cleanup`);
+              game.state = 'GameState.aborted';
+              gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
+              clearTimeout(game.cleanupTimer);
+              game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 5000);
+            }
+          } else if (game.players.length < 2 && game.state !== 'GameState.gameOver' && game.state !== 'GameState.aborted') {
+            // Not enough players to continue
             game.state = 'GameState.aborted';
-            log('game', `Game ${gameId} aborted due to insufficient players`);
+            log('game', `Game ${gameId} aborted due to insufficient players (${game.players.length} remaining)`);
             gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
             clearTimeout(game.cleanupTimer);
-            game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 30000);
+            game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 5000);
+          } else {
+            // Game continues with remaining players
+            gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
           }
         }
       }
     }
+    
     gm.clientToGame.delete(ws);
     gm.clientToPlayerId.delete(ws);
   });

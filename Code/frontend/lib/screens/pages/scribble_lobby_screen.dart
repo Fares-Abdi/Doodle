@@ -16,7 +16,6 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
   final TextEditingController _gameCodeController = TextEditingController();
   late String _playerId;
   late String _playerName;
-  bool isPrivate = true;
   String _webSocketUrl = '';
 
   late AnimationController _animationController;
@@ -126,220 +125,126 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
         }
         final games = snapshot.data!;
         if (games.isEmpty) {
-          return const Center(
-            child: Text('No games available.\nCreate a new one!'),
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('No games available.\nCreate a new one!'),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    _gameService.refreshAvailableGames();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Refresh'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: games.length,
-          itemBuilder: (context, index) {
-            final game = games[index];
-            return Container(
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
-                  )
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Placeholder for a room icon or avatar
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.pink.shade100,
-                      borderRadius: BorderRadius.circular(12),
+        return RefreshIndicator(
+          onRefresh: () async {
+            _gameService.refreshAvailableGames();
+            // Wait a moment for the refresh to complete
+            await Future.delayed(const Duration(milliseconds: 500));
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: games.length,
+            itemBuilder: (context, index) {
+              final game = games[index];
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Placeholder for a room icon or avatar
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.pink.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.grid_view, color: Colors.pink.shade400),
                     ),
-                    child: Icon(Icons.grid_view, color: Colors.pink.shade400),
-                  ),
-                  const SizedBox(width: 16),
-                  // Room details
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Room ${index + 1}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${game.players.length}/3 players',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Join button
-                  IconButton(
-                    icon: Icon(Icons.arrow_forward_ios, color: Colors.purple),
-                    onPressed: () async {
-                      await _gameService.joinGame(
-                        game.id,
-                        Player(
-                          id: _playerId,
-                          name: _playerName,
-                        ),
-                      );
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GameRoomScreen(
-                              gameId: game.id,
-                              userId: _playerId,
-                              userName: _playerName,
+                    const SizedBox(width: 16),
+                    // Room details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Room ${index + 1}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
+                          Text(
+                            '${game.players.length}/3 players',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Join button
+                    IconButton(
+                      icon: Icon(Icons.arrow_forward_ios, color: Colors.purple),
+                      onPressed: () async {
+                        await _gameService.joinGame(
+                          game.id,
+                          Player(
+                            id: _playerId,
+                            name: _playerName,
+                          ),
                         );
-                      }
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GameRoomScreen(
+                                gameId: game.id,
+                                userId: _playerId,
+                                userName: _playerName,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
 
-  Widget _buildToggleSwitch() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildToggleOption(
-                title: "Public",
-                isSelected: !isPrivate,
-                onTap: () {
-                  setState(() {
-                    isPrivate = false;
-                    _animationController.forward(from: 0.0);
-                  });
-                },
-              ),
-              const SizedBox(width: 40), // Increased spacing between toggles
-              _buildToggleOption(
-                title: "Private",
-                isSelected: isPrivate,
-                onTap: () {
-                  setState(() {
-                    isPrivate = true;
-                    _animationController.forward(from: 0.0);
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
-        AnimatedCrossFade(
-          firstChild: _buildPublicContent(),
-          secondChild: _buildPrivateContent(),
-          crossFadeState: isPrivate ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 300),
-          sizeCurve: Curves.easeInOut,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildToggleOption({
-    required String title,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
+  Widget _buildAvailableRoomsHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18, // Increased font size
-              fontWeight: FontWeight.bold,
-              color: isSelected ? Colors.deepPurple : Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 8),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.deepPurple : Colors.transparent,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrivateContent() {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _gameCodeController,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  hintText: "Enter the code ...",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20), // Increased spacing
-              ElevatedButton(
-                onPressed: _joinGame,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                  minimumSize: const Size(200, 50), // Set minimum size
-                ),
-                child: const Text(
-                  "Join",
-                  style: TextStyle(fontSize: 16), // Increased font size
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPublicContent() {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 20.0),
-          child: const Text(
+          const Text(
             "Available Rooms",
             style: TextStyle(
               fontSize: 20,
@@ -347,7 +252,21 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
               color: Colors.deepPurple,
             ),
           ),
-        ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.deepPurple),
+            onPressed: () {
+              // Refresh the available games
+              _gameService.refreshAvailableGames();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Refreshing available rooms...'),
+                  duration: Duration(milliseconds: 1000),
+                ),
+              );
+            },
+            tooltip: 'Refresh rooms',
+          ),
+        ],
       ),
     );
   }
@@ -472,14 +391,10 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      _buildToggleSwitch(),
-                      const SizedBox(height: 20), // Added spacing
+                      _buildAvailableRoomsHeader(),
+                      const SizedBox(height: 20),
                       Expanded(
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 300),
-                          opacity: !isPrivate ? 1.0 : 0.0,
-                          child: !isPrivate ? _buildAvailableGames() : const SizedBox(),
-                        ),
+                        child: _buildAvailableGames(),
                       ),
                     ],
                   ),

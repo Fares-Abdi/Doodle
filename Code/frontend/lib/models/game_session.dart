@@ -1,6 +1,5 @@
 import 'dart:math';
 import '../services/websocket_service.dart';
-import 'package:firebase_database/firebase_database.dart';
 
 enum GameState { waiting, preparing, drawing, roundEnd, gameOver }
 
@@ -10,6 +9,7 @@ class Player {
   final String? photoURL;  // Add photoURL field
   int score;
   bool isDrawing;
+  bool isCreator;  // Add creator flag
 
   Player({
     required this.id,
@@ -17,6 +17,7 @@ class Player {
     this.photoURL,  // Add photoURL parameter
     this.score = 0,
     this.isDrawing = false,
+    this.isCreator = false,  // Add creator flag
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +26,7 @@ class Player {
     'photoURL': photoURL,  // Add photoURL to JSON
     'score': score,
     'isDrawing': isDrawing,
+    'isCreator': isCreator,  // Add creator to JSON
   };
 
   factory Player.fromJson(Map<String, dynamic> json) => Player(
@@ -33,6 +35,7 @@ class Player {
     photoURL: json['photoURL'] as String?,  // Add photoURL from JSON
     score: json['score'] ?? 0,
     isDrawing: json['isDrawing'] ?? false,
+    isCreator: json['isCreator'] ?? false,  // Add creator from JSON
   );
 }
 
@@ -99,7 +102,7 @@ class GameSession {
     final session = GameSession(
       id: _generateId(),
       players: [
-        Player(id: creatorId, name: creatorName, isDrawing: true),
+        Player(id: creatorId, name: creatorName, isDrawing: true, isCreator: true),
       ],
       state: GameState.waiting,
     );

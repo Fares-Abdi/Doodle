@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../models/game_session.dart';
+import '../models/game_session.dart';
+import '../services/game_service.dart';
 import 'player_avatar.dart';
 
-class WaitingRoom extends StatelessWidget {
+class WaitingRoom extends StatefulWidget {
   final GameSession session;
   final String userId;
-  final Set<String> animatedPlayers;
   final VoidCallback onStartGame;
   final VoidCallback onBack;
 
@@ -13,10 +13,94 @@ class WaitingRoom extends StatelessWidget {
     Key? key,
     required this.session,
     required this.userId,
-    required this.animatedPlayers,
     required this.onStartGame,
     required this.onBack,
   }) : super(key: key);
+
+  @override
+  State<WaitingRoom> createState() => _WaitingRoomState();
+}
+
+class _WaitingRoomState extends State<WaitingRoom> {
+  late Set<String> _animatedPlayers;
+  late Set<String> _leavingPlayers;
+  late List<Player> _previousPlayers;
+  final GameService _gameService = GameService();
+  bool _roomDestroyed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animatedPlayers = {};
+    _leavingPlayers = {};
+    _previousPlayers = List.from(widget.session.players);
+  }
+
+  /// Check if a player has exited the waiting room
+  bool _hasPlayerExited(String playerId) {
+    return !widget.session.players.any((p) => p.id == playerId);
+  }
+
+  /// Check if all players have exited the waiting room (should trigger room destruction)
+  bool _haveAllPlayersExited() {
+    return widget.session.players.isEmpty;
+  }
+
+  @override
+  void didUpdateWidget(WaitingRoom oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Find players who left the game
+    final currentPlayerIds = widget.session.players.map((p) => p.id).toSet();
+    final previousPlayerIds = _previousPlayers.map((p) => p.id).toSet();
+    
+    // Players who were in previous list but not in current list have left
+    final leftPlayerIds = previousPlayerIds.difference(currentPlayerIds);
+    
+    if (leftPlayerIds.isNotEmpty) {
+      // Mark players as leaving for animation
+      setState(() {
+        _leavingPlayers.addAll(leftPlayerIds);
+      });
+      
+      // After animation, remove them from leaving set
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          setState(() {
+            _leavingPlayers.removeAll(leftPlayerIds);
+          });
+        }
+      });
+    }
+    
+    // Check if all players have exited - destroy/abort the room
+    if (_haveAllPlayersExited() && !_roomDestroyed) {
+      _roomDestroyed = true;
+      _handleRoomDestruction();
+    }
+    
+    // Update previous players list
+    _previousPlayers = List.from(widget.session.players);
+  }
+
+  /// Handle room destruction when all players exit
+  void _handleRoomDestruction() {
+    // Show notification about room being destroyed
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('All players left. Room has been destroyed.'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.deepPurple,
+      ),
+    );
+    
+    // Go back to lobby after a short delay
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        widget.onBack();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +149,11 @@ class WaitingRoom extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: onBack,
+            onPressed: () {
+              // Send leave_game message before going back
+              _gameService.leaveGame(widget.session.id);
+              widget.onBack();
+            },
           ),
           const Text(
             'Waiting Room',
@@ -82,7 +170,7 @@ class WaitingRoom extends StatelessWidget {
 
   Widget _buildPlayersCountText() {
     return Text(
-      '${session.players.length} players are in the waiting room',
+      '${widget.session.players.length} players are in the waiting room',
       style: const TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
@@ -92,27 +180,73 @@ class WaitingRoom extends StatelessWidget {
   }
 
   Widget _buildPlayerAvatars() {
+    // Show current players plus leaving players (for animation)
+    final displayPlayers = <Player>[...widget.session.players];
+    
+    // Add back players who are leaving so we can animate them out
+    for (final leavingId in _leavingPlayers) {
+      // Check if player is already in display list
+      if (displayPlayers.any((p) => p.id == leavingId)) {
+        continue;
+      }
+      
+      // Try to find the leaving player in previous list
+      for (final player in _previousPlayers) {
+        if (player.id == leavingId) {
+          displayPlayers.add(player);
+          break;
+        }
+      }
+    }
+    
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 24,
       runSpacing: 24,
-      children: session.players.map((player) {
-        final isNewPlayer = !animatedPlayers.contains(player.id);
+      children: displayPlayers.map((player) {
+        final isNewPlayer = !_animatedPlayers.contains(player.id) && 
+                           !_leavingPlayers.contains(player.id);
+        final isLeavingPlayer = _leavingPlayers.contains(player.id);
+        
         return PlayerAvatar(
           player: player,
-          isCurrentUser: player.id == userId,
+          isCurrentUser: player.id == widget.userId,
           isNewPlayer: isNewPlayer,
+          isLeavingPlayer: isLeavingPlayer,
           onAnimationEnd: () {
-            animatedPlayers.add(player.id);
+            if (mounted && !isLeavingPlayer) {
+              setState(() {
+                _animatedPlayers.add(player.id);
+              });
+            }
           },
         );
       }).toList(),
     );
   }
 
+  Widget _buildConnectionStatus() {
+    // Show status message if players have exited
+    if (_leavingPlayers.isNotEmpty) {
+      final exitingCount = _leavingPlayers.length;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Text(
+          '$exitingCount player${exitingCount > 1 ? 's' : ''} left the room',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.redAccent,
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   Widget _buildStartButton() {
     return ElevatedButton(
-      onPressed: session.players.length >= 2 ? onStartGame : null,
+      onPressed: widget.session.players.length >= 2 ? widget.onStartGame : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: Colors.deepPurple,
@@ -127,7 +261,7 @@ class WaitingRoom extends StatelessWidget {
         ),
       ),
       child: Text(
-        session.players.length >= 2 ? 'START GAME' : 'WAITING FOR PLAYERS',
+        widget.session.players.length >= 2 ? 'START GAME' : 'WAITING FOR PLAYERS',
         style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,

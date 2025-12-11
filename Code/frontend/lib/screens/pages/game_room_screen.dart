@@ -30,9 +30,6 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
   late AnimationController _chatPanelController;
   late Animation<double> _chatPanelAnimation;
   bool _isChatVisible = false;
-  
-  // Track which players we've seen
-  final Set<String> _animatedPlayers = {};
 
   @override
   void initState() {
@@ -52,6 +49,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
 
   @override
   void dispose() {
+    // Send leave_game message to server when leaving the room
+    _gameService.leaveGame(widget.gameId);
     _chatPanelController.dispose();
     super.dispose();
   }
@@ -102,7 +101,6 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
       return WaitingRoom(
         session: session,
         userId: widget.userId,
-        animatedPlayers: _animatedPlayers,
         onStartGame: () => _gameService.startGame(widget.gameId),
         onBack: () => Navigator.of(context).pop(),
       );

@@ -4,6 +4,7 @@ class Player {
   final String? photoURL;  // Add this field
   final int score;
   final bool isDrawing;
+  final bool isCreator;  // Add creator flag
 
   Player({
     required this.id,
@@ -11,6 +12,7 @@ class Player {
     this.photoURL,  // Add this parameter
     this.score = 0,
     this.isDrawing = false,
+    this.isCreator = false,  // Add creator flag
   });
 
   factory Player.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class Player {
       photoURL: json['photoURL'] as String?,  // Add this field
       score: json['score'] as int? ?? 0,
       isDrawing: json['isDrawing'] as bool? ?? false,
+      isCreator: json['isCreator'] as bool? ?? false,  // Add creator flag
     );
   }
 
@@ -30,6 +33,7 @@ class Player {
       'photoURL': photoURL,  // Add this field
       'score': score,
       'isDrawing': isDrawing,
+      'isCreator': isCreator,  // Add creator flag
     };
   }
 
@@ -39,6 +43,7 @@ class Player {
     String? photoURL,  // Add this parameter
     int? score,
     bool? isDrawing,
+    bool? isCreator,  // Add creator flag
   }) {
     return Player(
       id: id ?? this.id,
@@ -46,6 +51,7 @@ class Player {
       photoURL: photoURL ?? this.photoURL,  // Add this field
       score: score ?? this.score,
       isDrawing: isDrawing ?? this.isDrawing,
+      isCreator: isCreator ?? this.isCreator,  // Add creator flag
     );
   }
 }

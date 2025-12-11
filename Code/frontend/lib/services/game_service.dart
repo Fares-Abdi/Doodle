@@ -1,20 +1,10 @@
 import 'dart:async';
 import '../models/game_session.dart';
 import 'websocket_service.dart';
-import 'dart:math';
+
 
 class GameService {
   final _wsService = WebSocketService();
-  final _random = Random();
-
-  final _words = [
-    'cat', 'dog', 'house', 'tree', 'car', 'sun', 'moon', 'star',
-    'book', 'phone', 'computer', 'pizza', 'flower', 'bird', 'fish',
-    'airplane', 'boat', 'train', 'bicycle', 'mountain', 'beach',
-    'rainbow', 'butterfly', 'guitar', 'elephant', 'penguin', 'robot',
-    'castle', 'dragon', 'unicorn', 'wizard', 'pirate', 'rocket',
-    'dinosaur', 'superhero', 'mermaid', 'ghost', 'alien', 'monster'
-  ];
 
   Stream<GameSession> subscribeToGame(String gameId) {
     return _wsService.gameUpdates
@@ -26,6 +16,10 @@ class GameService {
     _wsService.sendMessage('join_game', gameId, {
       'player': player.toJson(),
     });
+  }
+
+  Future<void> leaveGame(String gameId) async {
+    _wsService.sendMessage('leave_game', gameId, null);
   }
 
   Future<void> updateGame(String gameId, GameSession session) async {
@@ -40,6 +34,10 @@ class GameService {
           .where((game) => game.state == GameState.waiting)
           .toList();
     });
+  }
+
+  Future<void> refreshAvailableGames() async {
+    _wsService.sendMessage('get_games', '', null);
   }
 
   Future<void> submitGuess(String gameId, String playerId, String guess) async {

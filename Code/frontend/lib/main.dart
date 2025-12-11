@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'localization/app_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:doodle/screens/pages/scribble_lobby_screen.dart';
@@ -69,7 +68,7 @@ class _MyAppState extends State<MyApp> {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
-        AppLocalizationsDelegate(),
+    
       ],
       supportedLocales: const [
         Locale('en', ''), // English
