@@ -69,27 +69,24 @@ wss.on('connection', (ws) => {
               const idx = game.players.findIndex(p => p.id === playerId);
               if (idx !== -1) {
                 const playerName = game.players[idx].name;
+                const wasCreator = game.players[idx].isCreator;
                 game.players.splice(idx, 1);
                 log('game', `Player ${playerName} (${playerId}) left game ${gameId}`);
                 
-                // Handle empty game
+                // If creator left, pass the creator role to the next player
+                if (wasCreator && game.players.length > 0) {
+                  game.players[0].isCreator = true;
+                  log('game', `Creator role passed to ${game.players[0].name} in game ${gameId}`);
+                }
+                
+                // Handle completely empty game only
                 if (game.players.length === 0) {
-                  if (game.state === 'GameState.waiting') {
-                    log('game', `Game ${gameId} is now empty - cleanup`);
-                    gm.cleanupGame(gameId);
-                  } else {
-                    game.state = 'GameState.aborted';
-                    gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
-                    clearTimeout(game.cleanupTimer);
-                    game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 5000);
-                  }
-                } else if (game.players.length < 2 && game.state !== 'GameState.gameOver') {
-                  game.state = 'GameState.aborted';
-                  log('game', `Game ${gameId} aborted - insufficient players`);
-                  gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
-                  clearTimeout(game.cleanupTimer);
-                  game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 5000);
-                } else {
+                  log('game', `Game ${gameId} is now empty - cleanup`);
+                  gm.cleanupGame(gameId);
+                }
+                // Game continues with remaining players - broadcast update
+                else {
+                  log('game', `Game ${gameId} continues with ${game.players.length} players`);
                   gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
                 }
               }
@@ -230,33 +227,14 @@ wss.on('connection', (ws) => {
             log('game', `Creator role passed to ${game.players[0].name} in game ${gameId}`);
           }
           
-          if (game.players.length > 0 && game.players.every(p => !p.isDrawing)) {
-            game.players[0].isDrawing = true;
-          }
-          
-          // Check if game is empty
+          // Handle completely empty game only
           if (game.players.length === 0) {
-            // If game is in waiting state, immediately cleanup (no broadcast needed)
-            if (game.state === 'GameState.waiting') {
-              log('game', `Game ${gameId} is now empty - immediate cleanup`);
-              gm.cleanupGame(gameId);
-            } else {
-              // Otherwise, abort and cleanup after a delay
-              log('game', `Game ${gameId} is now empty - aborting and scheduling cleanup`);
-              game.state = 'GameState.aborted';
-              gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
-              clearTimeout(game.cleanupTimer);
-              game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 5000);
-            }
-          } else if (game.players.length < 2 && game.state !== 'GameState.gameOver' && game.state !== 'GameState.aborted') {
-            // Not enough players to continue
-            game.state = 'GameState.aborted';
-            log('game', `Game ${gameId} aborted due to insufficient players (${game.players.length} remaining)`);
-            gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
-            clearTimeout(game.cleanupTimer);
-            game.cleanupTimer = setTimeout(() => gm.cleanupGame(gameId), 5000);
-          } else {
-            // Game continues with remaining players
+            log('game', `Game ${gameId} is now empty - cleanup`);
+            gm.cleanupGame(gameId);
+          }
+          // Game continues with remaining players - broadcast update
+          else {
+            log('game', `Game ${gameId} continues with ${game.players.length} players`);
             gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
           }
         }
