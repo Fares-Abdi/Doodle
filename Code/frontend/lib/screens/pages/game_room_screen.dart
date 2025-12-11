@@ -112,41 +112,74 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
     }
 
     // Main game screen
-    return Stack(
-      children: [
-        GameBoard(
-          session: session,
-          userId: widget.userId,
-          onEndRound: () => _gameService.endRound(widget.gameId),
-        ),
-        
-        // Chat toggle button
-        Positioned(
-          left: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            onPressed: _toggleChat,
-            backgroundColor: Colors.deepPurple,
-            child: Icon(
-              _isChatVisible ? Icons.chat_bubble : Icons.chat_bubble_outline,
-              color: Colors.white,
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Main game board takes full space
+          GameBoard(
+            session: session,
+            userId: widget.userId,
+            onEndRound: () => _gameService.endRound(widget.gameId),
+          ),
+          
+          // Chat panel on the right side (doesn't cover controls)
+          ChatPanel(
+            visible: _isChatVisible,
+            animation: _chatPanelAnimation,
+            session: session,
+            userId: widget.userId,
+            userName: widget.userName,
+            buildPlayerTile: (player) => PlayerTile(
+              player: player,
+              isHighlighted: player.id == widget.userId,
             ),
           ),
-        ),
-        
-        // Chat panel
-        ChatPanel(
-          visible: _isChatVisible,
-          animation: _chatPanelAnimation,
-          session: session,
-          userId: widget.userId,
-          userName: widget.userName,
-          buildPlayerTile: (player) => PlayerTile(
-            player: player,
-            isHighlighted: player.id == widget.userId,
+          
+          // Top-right close button (if chat is visible)
+          if (_isChatVisible)
+            Positioned(
+              right: 16,
+              top: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple,
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: _toggleChat,
+                  tooltip: 'Close chat',
+                ),
+              ),
+            ),
+          
+          // Bottom-left chat toggle button (doesn't get covered)
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: _toggleChat,
+              backgroundColor: Colors.deepPurple,
+              icon: Icon(
+                _isChatVisible ? Icons.chat : Icons.chat_bubble_outline,
+                color: Colors.white,
+              ),
+              label: Text(
+                _isChatVisible ? 'Hide' : 'Chat',
+                style: const TextStyle(color: Colors.white),
+              ),
+              tooltip: _isChatVisible ? 'Hide chat' : 'Show chat',
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

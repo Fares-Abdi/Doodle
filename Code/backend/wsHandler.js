@@ -157,13 +157,28 @@ wss.on('connection', (ws) => {
               game.playersGuessedCorrect.push(playerId);
               const guesser = game.players.find(p => p.id === playerId);
               if (guesser) {
-                guesser.score += gm.POINTS_FOR_CORRECT_GUESS;
+                // Calculate speed-based points
+                // Faster guesses = more points
+                const timeElapsed = Date.now() - new Date(game.roundStartTime).getTime();
+                const totalRoundTime = game.roundTime * 1000; // Convert to ms
+                const timeRemaining = Math.max(0, totalRoundTime - timeElapsed);
+                const speedPercentage = timeRemaining / totalRoundTime; // 1.0 = instant, 0.0 = timeout
+                
+                // Points scale: 100-300 based on speed
+                // 100% speed (instant) = 300 points
+                // 50% speed (half time) = 200 points  
+                // 0% speed (timeout) = 100 points
+                const speedPoints = Math.round(100 + (speedPercentage * 200));
+                guesser.score += speedPoints;
+                
+                log('game', `${guesser?.name} guessed correctly in ${(timeElapsed/1000).toFixed(1)}s, earned ${speedPoints} points`);
               }
+              
               const drawer = game.players.find(p => p.isDrawing);
               if (drawer) {
-                drawer.score += gm.POINTS_FOR_DRAWING;
+                // Drawer always gets 50 bonus points when someone guesses
+                drawer.score += 50;
               }
-              log('game', `${guesser?.name} correctly guessed the word in game ${gameId}`);
 
               const nonDrawingPlayers = game.players.filter(p => !p.isDrawing);
               if (game.playersGuessedCorrect.length === nonDrawingPlayers.length) {

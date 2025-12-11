@@ -23,6 +23,7 @@ class _GameBoardState extends State<GameBoard> {
   late StreamController<int> _timerController;
   Timer? _timer;
   bool _roundEnded = false;
+  static const int ROUND_DURATION = 80; // seconds
 
   @override
   void initState() {
@@ -46,7 +47,7 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (mounted) {
         _timerController.add(DateTime.now().millisecondsSinceEpoch);
       }
@@ -74,7 +75,9 @@ class _GameBoardState extends State<GameBoard> {
       ),
       child: Column(
         children: [
+          // Top info bar
           _buildGameHeader(currentPlayer),
+          // Canvas area
           Expanded(
             child: _buildDrawingCanvas(),
           ),
@@ -84,56 +87,143 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   Widget _buildGameHeader(Player currentPlayer) {
+    final isDrawer = currentPlayer.isDrawing;
+    
     return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.blue.shade100,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.shade700,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Round ${widget.session.currentRound}/${widget.session.maxRounds}'),
-          if (widget.session.roundStartTime != null) _buildTimer(),
-          Text('Score: ${currentPlayer.score}'),
+          // Round info
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Round ${widget.session.currentRound}/${widget.session.maxRounds}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              // Only show word to drawer
+              if (isDrawer)
+                Text(
+                  widget.session.currentWord ?? '???',
+                  style: TextStyle(
+                    color: Colors.yellow.shade300,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                )
+              else
+                Text(
+                  'Guess the drawing!',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+            ],
+          ),
+          // Timer - prominently displayed
+          _buildTimerWidget(),
+          // Score
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Text(
+                'Your Score',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                '${currentPlayer.score}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTimer() {
+  Widget _buildTimerWidget() {
     return StreamBuilder<int>(
       stream: _timerController.stream,
+      initialData: DateTime.now().millisecondsSinceEpoch,
       builder: (context, snapshot) {
         if (widget.session.roundStartTime == null) {
-          return const Text('Time: --s');
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              '--s',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          );
         }
 
-        // Calculate elapsed time
-        // Use server time from the last update if available, otherwise client time
+        // Calculate remaining time
         final now = DateTime.now();
         final elapsedMs = now.difference(widget.session.roundStartTime!).inMilliseconds;
-        
-        final totalRoundMs = widget.session.roundTime * 1000; // Convert to milliseconds
+        final totalRoundMs = ROUND_DURATION * 1000;
         final remainingMs = totalRoundMs - elapsedMs;
-        
-        // Ensure remaining is never negative (show 0 at minimum)
         final remaining = remainingMs > 0 ? (remainingMs / 1000).ceil() : 0;
-        
-        // Debug logging
-        if (snapshot.hasData && remaining > 0) {
-          print('Timer - Elapsed: ${elapsedMs}ms, Total: ${totalRoundMs}ms, Remaining: ${remaining}s');
-        }
-        
-        // End round when timer reaches zero, but only once
+
+        // End round when timer reaches zero
         if (remaining <= 0 && widget.session.state == GameState.drawing && !_roundEnded) {
           _roundEnded = true;
-          print('Timer expired, ending round');
           Future.microtask(() => widget.onEndRound());
         }
 
-        return Text(
-          'Time: ${remaining}s',
-          style: TextStyle(
-            color: remaining < 10 ? Colors.red : Colors.black,
-            fontWeight: FontWeight.bold,
+        // Color changes based on time remaining
+        Color timerColor = Colors.white;
+        if (remaining < 10) {
+          timerColor = Colors.red.shade300;
+        } else if (remaining < 20) {
+          timerColor = Colors.orange.shade300;
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: timerColor.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: timerColor, width: 2),
+          ),
+          child: Text(
+            '${remaining}s',
+            style: TextStyle(
+              color: timerColor,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         );
       },
@@ -141,32 +231,28 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   Widget _buildDrawingCanvas() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 2,
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: AdvancedDrawingCanvas(
-                userId: widget.userId,
-                gameSession: widget.session,
-              ),
-            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: AdvancedDrawingCanvas(
+            userId: widget.userId,
+            gameSession: widget.session,
           ),
         ),
-      ],
+      ),
     );
   }
 }
