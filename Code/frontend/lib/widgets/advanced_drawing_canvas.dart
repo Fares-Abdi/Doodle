@@ -669,93 +669,90 @@ void onPanStart(DragStartDetails details) {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Draw/Eraser toggle
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: selectedShape == 'freehand' 
-                              ? Colors.white.withOpacity(0.3) 
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selectedShape == 'freehand' 
-                                ? Colors.white 
-                                : Colors.white.withOpacity(0.3),
-                            width: 1.5,
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: selectedShape == 'freehand' 
+                                  ? Colors.white.withOpacity(0.3) 
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selectedShape == 'freehand' 
+                                    ? Colors.white 
+                                    : Colors.white.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.edit),
+                              color: Colors.white,
+                              onPressed: () => setState(() => selectedShape = 'freehand'),
+                            ),
                           ),
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.edit),
-                          color: Colors.white,
-                          iconSize: 20,
-                          padding: const EdgeInsets.all(6),
-                          constraints: const BoxConstraints(),
-                          onPressed: () => setState(() => selectedShape = 'freehand'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: selectedShape == 'eraser' 
-                              ? Colors.white.withOpacity(0.3) 
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selectedShape == 'eraser' 
-                                ? Colors.white 
-                                : Colors.white.withOpacity(0.3),
-                            width: 1.5,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: selectedShape == 'eraser' 
+                                  ? Colors.white.withOpacity(0.3) 
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selectedShape == 'eraser' 
+                                    ? Colors.white 
+                                    : Colors.white.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.cleaning_services),
+                              color: Colors.white,
+                              onPressed: () => setState(() => selectedShape = 'eraser'),
+                            ),
                           ),
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.cleaning_services),
-                          color: Colors.white,
-                          iconSize: 20,
-                          padding: const EdgeInsets.all(6),
-                          constraints: const BoxConstraints(),
-                          onPressed: () => setState(() => selectedShape = 'eraser'),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   // Undo/Redo/Clear
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.undo),
-                        color: Colors.white,
-                        iconSize: 20,
-                        padding: const EdgeInsets.all(6),
-                        constraints: const BoxConstraints(),
-                        onPressed: undo,
-                      ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: const Icon(Icons.redo),
-                        color: Colors.white,
-                        iconSize: 20,
-                        padding: const EdgeInsets.all(6),
-                        constraints: const BoxConstraints(),
-                        onPressed: redo,
-                      ),
-                      const SizedBox(width: 4),
-                      Container(
-                        width: 1,
-                        height: 20,
-                        color: Colors.white.withOpacity(0.3),
-                      ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: const Icon(Icons.clear),
-                        color: Colors.white,
-                        iconSize: 20,
-                        padding: const EdgeInsets.all(6),
-                        constraints: const BoxConstraints(),
-                        onPressed: clearCanvas,
-                      ),
-                    ],
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Expanded(
+                          child: IconButton(
+                            icon: const Icon(Icons.undo),
+                            color: Colors.white,
+                            onPressed: undo,
+                          ),
+                        ),
+                        Expanded(
+                          child: IconButton(
+                            icon: const Icon(Icons.redo),
+                            color: Colors.white,
+                            onPressed: redo,
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 16,
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                        Expanded(
+                          child: IconButton(
+                            icon: const Icon(Icons.clear),
+                            color: Colors.white,
+                            onPressed: clearCanvas,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
