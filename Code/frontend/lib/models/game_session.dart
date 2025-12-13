@@ -98,11 +98,12 @@ class GameSession {
   static Future<GameSession> create({
     required String creatorId,
     required String creatorName,
+    String? creatorAvatarColor,
   }) async {
     final session = GameSession(
       id: _generateId(),
       players: [
-        Player(id: creatorId, name: creatorName, isDrawing: true, isCreator: true),
+        Player(id: creatorId, name: creatorName, photoURL: creatorAvatarColor, isDrawing: true, isCreator: true),
       ],
       state: GameState.waiting,
     );

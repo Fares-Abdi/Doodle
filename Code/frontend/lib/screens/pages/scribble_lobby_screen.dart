@@ -72,10 +72,15 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
   }
 
   Future<void> _createGame() async {
+    // Load saved avatar color before creating game
+    final prefs = await SharedPreferences.getInstance();
+    final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
+    
     // Create game logic
     final session = await GameSession.create(
       creatorId: _playerId,
       creatorName: _playerName,
+      creatorAvatarColor: savedAvatarColor,
     );
     if (context.mounted) {
       Navigator.push(
@@ -94,12 +99,18 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
   Future<void> _joinGame() async {
     final gameId = _gameCodeController.text.trim();
     if (gameId.isEmpty) return;
+    
+    // Load saved avatar color before joining game
+    final prefs = await SharedPreferences.getInstance();
+    final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
+    
     // Join game logic
     await _gameService.joinGame(
       gameId,
       Player(
         id: _playerId,
         name: _playerName,
+        photoURL: savedAvatarColor,
       ),
     );
     if (context.mounted) {
@@ -207,11 +218,16 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
                     IconButton(
                       icon: Icon(Icons.arrow_forward_ios, color: Colors.purple),
                       onPressed: () async {
+                        // Load saved avatar color before joining game
+                        final prefs = await SharedPreferences.getInstance();
+                        final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
+                        
                         await _gameService.joinGame(
                           game.id,
                           Player(
                             id: _playerId,
                             name: _playerName,
+                            photoURL: savedAvatarColor,
                           ),
                         );
                         if (context.mounted) {
