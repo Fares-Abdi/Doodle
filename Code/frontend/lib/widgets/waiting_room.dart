@@ -27,6 +27,20 @@ class _WaitingRoomState extends State<WaitingRoom> {
   late List<Player> _previousPlayers;
   final GameService _gameService = GameService();
   bool _roomDestroyed = false;
+  late TextEditingController _nameController;
+  bool _isEditingName = false;
+  late String _selectedAvatarColor;
+  
+  static const List<Color> avatarColors = [
+    Colors.red,
+    Colors.pink,
+    Colors.orange,
+    Colors.yellow,
+    Colors.green,
+    Colors.blue,
+    Colors.indigo,
+    Colors.purple,
+  ];
 
   @override
   void initState() {
@@ -34,6 +48,18 @@ class _WaitingRoomState extends State<WaitingRoom> {
     _animatedPlayers = {};
     _leavingPlayers = {};
     _previousPlayers = List.from(widget.session.players);
+    final currentPlayer = widget.session.players.firstWhere(
+      (p) => p.id == widget.userId,
+      orElse: () => Player(id: widget.userId, name: 'Player'),
+    );
+    _nameController = TextEditingController(text: currentPlayer.name);
+    _selectedAvatarColor = currentPlayer.photoURL ?? 'blue';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
   /// Check if a player has exited the waiting room
@@ -104,41 +130,44 @@ class _WaitingRoomState extends State<WaitingRoom> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Background gradient
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color.fromARGB(255, 39, 28, 85), Color.fromARGB(255, 96, 30, 144)],
+    return WillPopScope(
+      onWillPop: _onBackPressed,
+      child: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color.fromARGB(255, 39, 28, 85), Color.fromARGB(255, 96, 30, 144)],
+              ),
             ),
           ),
-        ),
-        SafeArea(
-          child: Column(
-            children: [
-              // Custom App Bar for waiting room
-              _buildAppBar(),
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildPlayersCountText(),
-                      const SizedBox(height: 40),
-                      _buildPlayerAvatars(),
-                      const SizedBox(height: 48),
-                      _buildStartButton(),
-                    ],
+          SafeArea(
+            child: Column(
+              children: [
+                // Custom App Bar for waiting room
+                _buildAppBar(),
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildPlayersCountText(),
+                        const SizedBox(height: 40),
+                        _buildPlayerAvatars(),
+                        const SizedBox(height: 48),
+                        _buildStartButton(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -149,11 +178,7 @@ class _WaitingRoomState extends State<WaitingRoom> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              // Send leave_game message before going back
-              _gameService.leaveGame(widget.session.id);
-              widget.onBack();
-            },
+            onPressed: _showExitConfirmation,
           ),
           const Text(
             'Waiting Room',
@@ -166,6 +191,38 @@ class _WaitingRoomState extends State<WaitingRoom> {
         ],
       ),
     );
+  }
+
+  void _showExitConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Exit Game?'),
+          content: const Text('Are you sure you want to leave the game?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Send leave_game message before going back
+                _gameService.leaveGame(widget.session.id);
+                widget.onBack();
+              },
+              child: const Text('Exit', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _onBackPressed() async {
+    _showExitConfirmation();
+    return false; // Prevent default back button behavior
   }
 
   Widget _buildPlayersCountText() {

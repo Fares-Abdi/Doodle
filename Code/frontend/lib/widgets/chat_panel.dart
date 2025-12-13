@@ -33,15 +33,21 @@ class ChatPanel extends StatelessWidget {
         ).animate(animation),
         child: Container(
           width: MediaQuery.of(context).size.width * 0.75,
-          constraints: const BoxConstraints(maxWidth: 350),
+          constraints: const BoxConstraints(maxWidth: 380),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFFAFAFA),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 15,
-                spreadRadius: 3,
-                offset: const Offset(-3, 0),
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 20,
+                spreadRadius: 5,
+                offset: const Offset(-5, 0),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 10,
+                spreadRadius: 1,
+                offset: const Offset(-2, 0),
               ),
             ],
           ),
@@ -49,17 +55,15 @@ class ChatPanel extends StatelessWidget {
             children: [
               // Header with players count
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.deepPurple.shade600,
+                      Colors.deepPurple.shade500,
                       Colors.deepPurple.shade700,
                     ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(12),
-                    bottomRight: Radius.circular(12),
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
                 child: Column(
@@ -68,29 +72,49 @@ class ChatPanel extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Players',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Players Online',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Game in progress',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withOpacity(0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+                            horizontal: 12,
+                            vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withOpacity(0.25),
                             borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                              width: 1.5,
+                            ),
                           ),
                           child: Text(
-                            '${session.players.length}',
+                            '${session.players.length} players',
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ),
@@ -100,14 +124,14 @@ class ChatPanel extends StatelessWidget {
                 ),
               ),
               
-              // Players list
+              // Players list with better styling
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: Colors.white,
                   border: Border(
                     bottom: BorderSide(
-                      color: Colors.grey.shade200,
+                      color: Colors.grey.shade300,
                       width: 1,
                     ),
                   ),
@@ -115,9 +139,23 @@ class ChatPanel extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      ...session.players.map((player) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: buildPlayerTile(player),
+                      ...session.players.asMap().entries.map((entry) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: entry.value.id == userId
+                                ? Colors.deepPurple.withOpacity(0.08)
+                                : Colors.grey.shade50,
+                            border: Border.all(
+                              color: entry.value.id == userId
+                                  ? Colors.deepPurple.withOpacity(0.3)
+                                  : Colors.grey.shade200,
+                              width: 1,
+                            ),
+                          ),
+                          child: buildPlayerTile(entry.value),
+                        ),
                       )),
                     ],
                   ),
@@ -126,10 +164,15 @@ class ChatPanel extends StatelessWidget {
               
               // Chat section
               Expanded(
-                child: GameChat(
-                  gameSession: session,
-                  userId: userId,
-                  userName: userName,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                  ),
+                  child: GameChat(
+                    gameSession: session,
+                    userId: userId,
+                    userName: userName,
+                  ),
                 ),
               ),
             ],

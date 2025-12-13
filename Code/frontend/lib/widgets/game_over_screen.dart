@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import '../../../models/game_session.dart';
 
-class GameOverScreen extends StatelessWidget {
+class GameOverScreen extends StatefulWidget {
   final GameSession session;
   final VoidCallback onBackToLobby;
 
@@ -13,45 +13,53 @@ class GameOverScreen extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<GameOverScreen> createState() => _GameOverScreenState();
+}
+
+class _GameOverScreenState extends State<GameOverScreen> {
+  @override
   Widget build(BuildContext context) {
     // Sort players by score
-    final sortedPlayers = session.players.sorted((a, b) => b.score.compareTo(a.score));
+    final sortedPlayers = widget.session.players.sorted((a, b) => b.score.compareTo(a.score));
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.deepPurple.shade900, Colors.deepPurple.shade500],
+    return WillPopScope(
+      onWillPop: _onBackPressed,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.deepPurple.shade900, Colors.deepPurple.shade500],
+          ),
         ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildAppBar(),
-            const Text(
-              'Game Over!',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    color: Colors.black26,
-                    offset: Offset(2, 2),
-                    blurRadius: 4,
-                  ),
-                ],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildAppBar(),
+              const Text(
+                'Game Over!',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(2, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 40),
-            _buildPodium(sortedPlayers),
-            const SizedBox(height: 40),
-            if (sortedPlayers.length > 3) _buildOtherPlayers(sortedPlayers),
-            const SizedBox(height: 32),
-            _buildBackButton(),
-          ],
+              const SizedBox(height: 40),
+              _buildPodium(sortedPlayers),
+              const SizedBox(height: 40),
+              if (sortedPlayers.length > 3) _buildOtherPlayers(sortedPlayers),
+              const SizedBox(height: 32),
+              _buildBackButton(),
+            ],
+          ),
         ),
       ),
     );
@@ -64,7 +72,7 @@ class GameOverScreen extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: onBackToLobby,
+            onPressed: _showExitConfirmation,
           ),
           const Text(
             'Srible Game',
@@ -77,6 +85,36 @@ class GameOverScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _showExitConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Exit Game?'),
+          content: const Text('Are you sure you want to return to the lobby?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                widget.onBackToLobby();
+              },
+              child: const Text('Exit', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _onBackPressed() async {
+    _showExitConfirmation();
+    return false; // Prevent default back button behavior
   }
 
   Widget _buildPodium(List<Player> players) {
@@ -221,7 +259,7 @@ class GameOverScreen extends StatelessWidget {
 
   Widget _buildBackButton() {
     return ElevatedButton(
-      onPressed: onBackToLobby,
+      onPressed: _showExitConfirmation,
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),

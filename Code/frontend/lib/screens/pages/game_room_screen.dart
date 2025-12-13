@@ -66,23 +66,57 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
     });
   }
 
+  Future<bool> _onBackPressed() async {
+    _showExitConfirmation();
+    return false; // Prevent default back button behavior
+  }
+
+  void _showExitConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Exit Game?'),
+          content: const Text('Are you sure you want to leave the game? Your progress will be lost.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _gameService.leaveGame(widget.gameId);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Exit', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: StreamBuilder<GameSession>(
-        stream: _gameStream,
-        builder: (context, snapshot) {
-          // Show loading indicator while waiting for data
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return WillPopScope(
+      onWillPop: _onBackPressed,
+      child: Scaffold(
+        body: StreamBuilder<GameSession>(
+          stream: _gameStream,
+          builder: (context, snapshot) {
+            // Show loading indicator while waiting for data
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final session = snapshot.data!;
-          
-          return Scaffold(
-            body: _buildMainContent(session),
-          );
-        },
+            final session = snapshot.data!;
+            
+            return Scaffold(
+              body: _buildMainContent(session),
+            );
+          },
+        ),
       ),
     );
   }
@@ -113,72 +147,46 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
 
     // Main game screen
     return Scaffold(
-      body: Stack(
-        children: [
-          // Main game board takes full space
-          GameBoard(
-            session: session,
-            userId: widget.userId,
-            onEndRound: () => _gameService.endRound(widget.gameId),
-          ),
-          
-          // Chat panel on the right side (doesn't cover controls)
-          ChatPanel(
-            visible: _isChatVisible,
-            animation: _chatPanelAnimation,
-            session: session,
-            userId: widget.userId,
-            userName: widget.userName,
-            buildPlayerTile: (player) => PlayerTile(
-              player: player,
-              isHighlighted: player.id == widget.userId,
+      backgroundColor: Colors.deepPurple.shade700,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Main game board takes full space
+            GameBoard(
+              session: session,
+              userId: widget.userId,
+              onEndRound: () => _gameService.endRound(widget.gameId),
             ),
-          ),
-          
-          // Top-right close button (if chat is visible)
-          if (_isChatVisible)
+            
+            // Chat panel on the right side (doesn't cover controls)
+            ChatPanel(
+              visible: _isChatVisible,
+              animation: _chatPanelAnimation,
+              session: session,
+              userId: widget.userId,
+              userName: widget.userName,
+              buildPlayerTile: (player) => PlayerTile(
+                player: player,
+                isHighlighted: player.id == widget.userId,
+              ),
+            ),
+            
+            // Bottom-left chat toggle button (doesn't get covered)
             Positioned(
-              right: 16,
-              top: 16,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple,
-                  borderRadius: BorderRadius.circular(50),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: _toggleChat,
-                  tooltip: 'Close chat',
+              left: 16,
+              bottom: 16,
+              child: FloatingActionButton(
+                onPressed: _toggleChat,
+                backgroundColor: Colors.deepPurple,
+                tooltip: _isChatVisible ? 'Hide chat' : 'Show chat',
+                child: Icon(
+                  _isChatVisible ? Icons.chat : Icons.chat_bubble_outline,
+                  color: Colors.white,
                 ),
               ),
             ),
-          
-          // Bottom-left chat toggle button (doesn't get covered)
-          Positioned(
-            left: 16,
-            bottom: 16,
-            child: FloatingActionButton.extended(
-              onPressed: _toggleChat,
-              backgroundColor: Colors.deepPurple,
-              icon: Icon(
-                _isChatVisible ? Icons.chat : Icons.chat_bubble_outline,
-                color: Colors.white,
-              ),
-              label: Text(
-                _isChatVisible ? 'Hide' : 'Chat',
-                style: const TextStyle(color: Colors.white),
-              ),
-              tooltip: _isChatVisible ? 'Hide chat' : 'Show chat',
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
