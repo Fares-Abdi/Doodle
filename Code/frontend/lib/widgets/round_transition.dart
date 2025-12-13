@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/game_session.dart';
+import '../utils/avatar_color_helper.dart';
 
 
 class RoundTransition extends StatelessWidget {
@@ -90,6 +91,7 @@ class RoundTransition extends StatelessWidget {
       alignment: WrapAlignment.center,
       children: session.players.map((player) {
         final isNextDrawer = session.players.indexOf(player) == nextDrawerIndex;
+        final avatarColor = AvatarColorHelper.getColorFromName(player.photoURL);
         
         return Column(
           children: [
@@ -97,16 +99,15 @@ class RoundTransition extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: isNextDrawer ? 35 : 30,
-                  backgroundImage: player.photoURL != null ? NetworkImage(player.photoURL!) : null,
-                  backgroundColor: isNextDrawer ? Colors.white : Colors.white60,
-                  child: player.photoURL == null ? Text(
+                  backgroundColor: avatarColor,
+                  child: Text(
                     player.name[0].toUpperCase(),
                     style: TextStyle(
                       fontSize: isNextDrawer ? 24 : 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                      color: Colors.white,
                     ),
-                  ) : null,
+                  ),
                 ),
                 if (isNextDrawer)
                   Positioned(

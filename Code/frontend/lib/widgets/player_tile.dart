@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/game_session.dart';
+import '../utils/avatar_color_helper.dart';
 
 class PlayerAvatar extends StatelessWidget {
   final Player player;
@@ -21,6 +22,8 @@ class PlayerAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatarColor = AvatarColorHelper.getColorFromName(player.photoURL);
+    
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeOut,
@@ -44,16 +47,15 @@ class PlayerAvatar extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: isHighlighted ? baseRadius + 10 : baseRadius,
-                      backgroundImage: player.photoURL != null ? NetworkImage(player.photoURL!) : null,
-                      backgroundColor: Colors.white,
-                      child: player.photoURL == null ? Text(
+                      backgroundColor: avatarColor,
+                      child: Text(
                         player.name[0].toUpperCase(),
                         style: TextStyle(
                           fontSize: isHighlighted ? 24 : 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
+                          color: Colors.white,
                         ),
-                      ) : null,
+                      ),
                     ),
                     if (player.isDrawing)
                       Positioned(
@@ -111,6 +113,8 @@ class PlayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatarColor = AvatarColorHelper.getColorFromName(player.photoURL);
+    
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -128,45 +132,54 @@ class PlayerTile extends StatelessWidget {
         ] : null,
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              if (player.isDrawing)
-                const Padding(
-                  padding: EdgeInsets.only(right: 8),
-                  child: Icon(Icons.brush, color: Colors.deepPurple, size: 16),
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (player.isDrawing)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Icon(Icons.brush, color: Colors.deepPurple, size: 16),
+                  ),
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: avatarColor,
+                  child: Text(
+                    player.name[0].toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
-              CircleAvatar(
-                radius: 16,
-                backgroundImage: player.photoURL != null ? NetworkImage(player.photoURL!) : null,
-                backgroundColor: Colors.deepPurple.shade50,
-                child: player.photoURL == null 
-                    ? Text(
-                        player.name[0].toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
-                      ) 
-                    : null,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                player.name,
-                style: TextStyle(
-                  color: player.isDrawing ? Colors.deepPurple : Colors.black87,
-                  fontWeight: player.isDrawing ? FontWeight.bold : FontWeight.normal,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    player.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: player.isDrawing ? Colors.deepPurple : Colors.black87,
+                      fontWeight: player.isDrawing ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          Text(
-            player.score.toString(),
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
+          SizedBox(
+            width: 50,
+            child: Text(
+              player.score.toString(),
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
             ),
           ),
         ],

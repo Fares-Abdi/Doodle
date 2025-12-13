@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/game_session.dart';
 import '../services/game_service.dart';
 import 'player_avatar.dart';
+import 'player_profile_editor.dart';
 
 class WaitingRoom extends StatefulWidget {
   final GameSession session;
@@ -30,6 +32,7 @@ class _WaitingRoomState extends State<WaitingRoom> {
   late TextEditingController _nameController;
   bool _isEditingName = false;
   late String _selectedAvatarColor;
+  late Map<String, Player> _displayPlayers; // Local copy for UI updates
   
   static const List<Color> avatarColors = [
     Colors.red,
@@ -48,12 +51,37 @@ class _WaitingRoomState extends State<WaitingRoom> {
     _animatedPlayers = {};
     _leavingPlayers = {};
     _previousPlayers = List.from(widget.session.players);
+    _displayPlayers = {for (var p in widget.session.players) p.id: p}; // Local copy
     final currentPlayer = widget.session.players.firstWhere(
       (p) => p.id == widget.userId,
       orElse: () => Player(id: widget.userId, name: 'Player'),
     );
     _nameController = TextEditingController(text: currentPlayer.name);
     _selectedAvatarColor = currentPlayer.photoURL ?? 'blue';
+    _loadSavedProfile();
+  }
+
+  /// Load saved player profile from local storage
+  Future<void> _loadSavedProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('player_name_${widget.userId}');
+    final savedColor = prefs.getString('player_avatar_${widget.userId}');
+    
+    if (savedName != null) {
+      _nameController.text = savedName;
+    }
+    if (savedColor != null) {
+      setState(() {
+        _selectedAvatarColor = savedColor;
+      });
+    }
+  }
+
+  /// Save player profile to local storage
+  Future<void> _saveProfileLocally(String name, String avatarColor) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('player_name_${widget.userId}', name);
+    await prefs.setString('player_avatar_${widget.userId}', avatarColor);
   }
 
   @override
@@ -75,6 +103,10 @@ class _WaitingRoomState extends State<WaitingRoom> {
   @override
   void didUpdateWidget(WaitingRoom oldWidget) {
     super.didUpdateWidget(oldWidget);
+    
+    // Sync display players with parent changes
+    // This ensures we get updated players from the stream
+    _displayPlayers = {for (var p in widget.session.players) p.id: p};
     
     // Find players who left the game
     final currentPlayerIds = widget.session.players.map((p) => p.id).toSet();
@@ -150,16 +182,19 @@ class _WaitingRoomState extends State<WaitingRoom> {
                 // Custom App Bar for waiting room
                 _buildAppBar(),
                 Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildPlayersCountText(),
-                        const SizedBox(height: 40),
-                        _buildPlayerAvatars(),
-                        const SizedBox(height: 48),
-                        _buildStartButton(),
-                      ],
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildPlayersCountText(),
+                          const SizedBox(height: 32),
+                          _buildPlayerAvatars(),
+                          const SizedBox(height: 40),
+                          _buildStartButton(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -180,15 +215,64 @@ class _WaitingRoomState extends State<WaitingRoom> {
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: _showExitConfirmation,
           ),
-          const Text(
-            'Waiting Room',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          const Expanded(
+            child: Text(
+              'Waiting Room',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white),
+            onPressed: _showProfileEditor,
+            tooltip: 'Edit Profile',
+          ),
         ],
+      ),
+    );
+  }
+
+  void _showProfileEditor() {
+    final currentPlayer = widget.session.players.firstWhere(
+      (p) => p.id == widget.userId,
+      orElse: () => Player(id: widget.userId, name: 'Player'),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => PlayerProfileEditor(
+        player: currentPlayer,
+        onSave: (name, avatarColor) {
+          // Close dialog first to dismiss keyboard
+          Navigator.of(context).pop();
+          
+          // Update local display immediately for better UX
+          setState(() {
+            _displayPlayers[widget.userId] = Player(
+              id: widget.userId,
+              name: name,
+              photoURL: avatarColor,
+              score: currentPlayer.score,
+              isDrawing: currentPlayer.isDrawing,
+              isCreator: currentPlayer.isCreator,
+            );
+            _selectedAvatarColor = avatarColor;
+          });
+          
+          // Save to local storage for persistence
+          _saveProfileLocally(name, avatarColor);
+          
+          // Send update to backend
+          _gameService.updatePlayer(
+            widget.session.id,
+            widget.userId,
+            name,
+            avatarColor,
+          );
+        },
       ),
     );
   }
@@ -227,7 +311,7 @@ class _WaitingRoomState extends State<WaitingRoom> {
 
   Widget _buildPlayersCountText() {
     return Text(
-      '${widget.session.players.length} players are in the waiting room',
+      '${_displayPlayers.length} players are in the waiting room',
       style: const TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
@@ -238,19 +322,19 @@ class _WaitingRoomState extends State<WaitingRoom> {
 
   Widget _buildPlayerAvatars() {
     // Show current players plus leaving players (for animation)
-    final displayPlayers = <Player>[...widget.session.players];
+    final displayList = <Player>[..._displayPlayers.values];
     
     // Add back players who are leaving so we can animate them out
     for (final leavingId in _leavingPlayers) {
       // Check if player is already in display list
-      if (displayPlayers.any((p) => p.id == leavingId)) {
+      if (displayList.any((p) => p.id == leavingId)) {
         continue;
       }
       
       // Try to find the leaving player in previous list
       for (final player in _previousPlayers) {
         if (player.id == leavingId) {
-          displayPlayers.add(player);
+          displayList.add(player);
           break;
         }
       }
@@ -260,7 +344,7 @@ class _WaitingRoomState extends State<WaitingRoom> {
       alignment: WrapAlignment.center,
       spacing: 24,
       runSpacing: 24,
-      children: displayPlayers.map((player) {
+      children: displayList.map((player) {
         final isNewPlayer = !_animatedPlayers.contains(player.id) && 
                            !_leavingPlayers.contains(player.id);
         final isLeavingPlayer = _leavingPlayers.contains(player.id);

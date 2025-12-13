@@ -22,6 +22,14 @@ class GameService {
     _wsService.sendMessage('leave_game', gameId, null);
   }
 
+  Future<void> updatePlayer(String gameId, String playerId, String name, String photoURL) async {
+    _wsService.sendMessage('update_player', gameId, {
+      'playerId': playerId,
+      'name': name,
+      'photoURL': photoURL,
+    });
+  }
+
   Future<void> updateGame(String gameId, GameSession session) async {
     _wsService.sendMessage('update_game', gameId, session.toJson());
   }

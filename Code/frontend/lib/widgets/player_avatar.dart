@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/game_session.dart';
+import '../utils/avatar_color_helper.dart';
 
 class PlayerAvatar extends StatefulWidget {
   final Player player;
@@ -77,6 +78,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final avatarColor = AvatarColorHelper.getColorFromName(widget.player.photoURL);
+    
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -90,20 +93,15 @@ class _PlayerAvatarState extends State<PlayerAvatar> with SingleTickerProviderSt
                   children: [
                     CircleAvatar(
                       radius: widget.isCurrentUser ? 40 : 30,
-                      backgroundImage: widget.player.photoURL != null
-                          ? NetworkImage(widget.player.photoURL!)
-                          : null,
-                      backgroundColor: Colors.white,
-                      child: widget.player.photoURL == null
-                          ? Text(
-                              widget.player.name[0].toUpperCase(),
-                              style: TextStyle(
-                                fontSize: widget.isCurrentUser ? 24 : 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple,
-                              ),
-                            )
-                          : null,
+                      backgroundColor: avatarColor,
+                      child: Text(
+                        widget.player.name[0].toUpperCase(),
+                        style: TextStyle(
+                          fontSize: widget.isCurrentUser ? 24 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                     // Show creator badge
                     if (widget.player.isCreator)

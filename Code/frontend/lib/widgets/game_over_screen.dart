@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import '../../../models/game_session.dart';
+import '../utils/avatar_color_helper.dart';
 
 class GameOverScreen extends StatefulWidget {
   final GameSession session;
@@ -32,37 +33,41 @@ class _GameOverScreenState extends State<GameOverScreen> {
             colors: [Colors.deepPurple.shade900, Colors.deepPurple.shade500],
           ),
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildAppBar(),
-              const Text(
-                'Game Over!',
-                style: TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black26,
-                      offset: Offset(2, 2),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildAppBar(),
+                const SizedBox(height: 20),
+                const Text(
+                  'Game Over!',
+                  style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black26,
+                        offset: Offset(2, 2),
                       blurRadius: 4,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
               _buildPodium(sortedPlayers),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
               if (sortedPlayers.length > 3) _buildOtherPlayers(sortedPlayers),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               _buildBackButton(),
+              const SizedBox(height: 24),
             ],
           ),
         ),
       ),
-    );
+    ),);
   }
 
   Widget _buildAppBar() {
@@ -155,23 +160,22 @@ class _GameOverScreenState extends State<GameOverScreen> {
   }
 
   Widget _buildPodiumSpot(Player player, double height, Color color, String place) {
+    final avatarColor = AvatarColorHelper.getColorFromName(player.photoURL);
+    
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         CircleAvatar(
           radius: place == '1st' ? 40 : 30,
-          backgroundImage: player.photoURL != null ? NetworkImage(player.photoURL!) : null,
-          backgroundColor: Colors.white,
-          child: player.photoURL == null
-              ? Text(
-                  player.name[0].toUpperCase(),
-                  style: TextStyle(
-                    fontSize: place == '1st' ? 24 : 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
-                  ),
-                )
-              : null,
+          backgroundColor: avatarColor,
+          child: Text(
+            player.name[0].toUpperCase(),
+            style: TextStyle(
+              fontSize: place == '1st' ? 24 : 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
         ),
         const SizedBox(height: 8),
         Text(

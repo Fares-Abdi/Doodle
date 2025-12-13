@@ -213,6 +213,21 @@ wss.on('connection', (ws) => {
           break;
         }
 
+        case 'update_player': {
+          if (gm.games.has(gameId)) {
+            const game = gm.games.get(gameId);
+            const { playerId, name, photoURL } = payload;
+            const playerIndex = game.players.findIndex(p => p.id === playerId);
+            if (playerIndex !== -1) {
+              game.players[playerIndex].name = name;
+              game.players[playerIndex].photoURL = photoURL;
+              log('game', `Player ${playerId} updated: name=${name}, avatar=${photoURL}`);
+              gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
+            }
+          }
+          break;
+        }
+
         default:
           log('error', `Unknown message type: ${type}`);
       }
