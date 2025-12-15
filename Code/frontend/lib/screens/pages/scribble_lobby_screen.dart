@@ -5,30 +5,49 @@ import 'game_room_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/game_session.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:math' as math;
 
 class ScribbleLobbyScreen extends StatefulWidget {
   @override
   _ScribbleLobbyScreenState createState() => _ScribbleLobbyScreenState();
 }
 
-class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTickerProviderStateMixin {
+class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> 
+    with TickerProviderStateMixin {
   final GameService _gameService = GameService();
   final TextEditingController _gameCodeController = TextEditingController();
   late String _playerId;
   late String _playerName;
   String _webSocketUrl = '';
 
-  late AnimationController _animationController;
+  late AnimationController _floatingController;
+  late AnimationController _logoController;
+  late AnimationController _particleController;
+  late List<Particle> _particles;
 
   @override
   void initState() {
     super.initState();
     _initializePlayer();
     _loadWebSocketUrl();
-    _animationController = AnimationController(
+    
+    _floatingController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
     );
+
+    _particleController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+
+    _particles = List.generate(20, (index) => Particle.random());
+    _logoController.forward();
   }
 
   Future<void> _initializePlayer() async {
@@ -36,7 +55,6 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
     _playerId = prefs.getString('playerId') ?? const Uuid().v4();
     _playerName = prefs.getString('playerName') ?? 'Player ${_playerId.substring(0, 4)}';
     
-    // Save to preferences if new
     await prefs.setString('playerId', _playerId);
     await prefs.setString('playerName', _playerName);
     
@@ -50,17 +68,17 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _floatingController.dispose();
+    _logoController.dispose();
+    _particleController.dispose();
     _gameCodeController.dispose();
     super.dispose();
   }
 
   Future<void> _createGame() async {
-    // Load saved avatar color before creating game
     final prefs = await SharedPreferences.getInstance();
     final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
     
-    // Create game logic
     final session = await GameSession.create(
       creatorId: _playerId,
       creatorName: _playerName,
@@ -80,21 +98,307 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
     }
   }
 
+  Widget _buildAnimatedBackground() {
+    return AnimatedBuilder(
+      animation: _particleController,
+      builder: (context, child) {
+        return CustomPaint(
+          size: Size.infinite,
+          painter: ParticlePainter(
+            particles: _particles,
+            progress: _particleController.value,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Animated logo
+          ScaleTransition(
+            scale: Tween<double>(begin: 0.0, end: 1.0).animate(
+              CurvedAnimation(
+                parent: _logoController,
+                curve: Curves.elasticOut,
+              ),
+            ),
+            child: AnimatedBuilder(
+              animation: _floatingController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, 10 * math.sin(_floatingController.value * math.pi)),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.3),
+                          Colors.white.withOpacity(0.1),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.brush,
+                      size: 60,
+                      color: Colors.white,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Game title with shimmer effect
+          FadeTransition(
+            opacity: _logoController,
+            child: ShaderMask(
+              shaderCallback: (bounds) {
+                return LinearGradient(
+                  colors: [
+                    Colors.white,
+                    Colors.white.withOpacity(0.8),
+                    Colors.white,
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds);
+              },
+              child: const Text(
+                'IRSEMNI',
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 4,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(2, 2),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 8),
+          FadeTransition(
+            opacity: _logoController,
+            child: Text(
+              'Draw • Guess • Win',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.9),
+                letterSpacing: 2,
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturedCard() {
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0, -0.5),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: _logoController,
+        curve: Curves.easeOut,
+      )),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.deepPurpleAccent,
+              Colors.purpleAccent.shade400,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.deepPurpleAccent.withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              // Decorative circles
+              Positioned(
+                top: -30,
+                right: -30,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -20,
+                left: -20,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          "✨ FEATURED",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Create Your Own Room",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Start a game and invite your friends to join the fun!",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: _createGame,
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: const Text(
+                        "Create Room",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.deepPurple,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 8,
+                        shadowColor: Colors.black45,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    );
+  }
+
   Widget _buildAvailableGames() {
     return StreamBuilder<List<GameSession>>(
       stream: _gameService.getAvailableGames(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+            ),
+          );
         }
+        
         final games = snapshot.data!;
+        
         if (games.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('No games available.\nCreate a new one!'),
-                const SizedBox(height: 20),
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 80,
+                  color: Colors.grey.shade300,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No rooms available',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Be the first to create one!',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () {
                     _gameService.refreshAvailableGames();
@@ -104,102 +408,32 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurple,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
                 ),
               ],
             ),
           );
         }
+        
         return RefreshIndicator(
+          color: Colors.deepPurple,
           onRefresh: () async {
             _gameService.refreshAvailableGames();
-            // Wait a moment for the refresh to complete
             await Future.delayed(const Duration(milliseconds: 500));
           },
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: games.length,
             itemBuilder: (context, index) {
               final game = games[index];
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    // Placeholder for a room icon or avatar
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.pink.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.grid_view, color: Colors.pink.shade400),
-                    ),
-                    const SizedBox(width: 16),
-                    // Room details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Room ${index + 1}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '${game.players.length}/3 players',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Join button
-                    IconButton(
-                      icon: Icon(Icons.arrow_forward_ios, color: Colors.purple),
-                      onPressed: () async {
-                        // Load saved avatar color before joining game
-                        final prefs = await SharedPreferences.getInstance();
-                        final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
-                        
-                        await _gameService.joinGame(
-                          game.id,
-                          Player(
-                            id: _playerId,
-                            name: _playerName,
-                            photoURL: savedAvatarColor,
-                          ),
-                        );
-                        if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => GameRoomScreen(
-                                gameId: game.id,
-                                userId: _playerId,
-                                userName: _playerName,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              );
+              return _buildRoomCard(game, index);
             },
           ),
         );
@@ -207,36 +441,218 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
     );
   }
 
-  Widget _buildAvailableRoomsHeader() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            "Available Rooms",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.deepPurple),
-            onPressed: () {
-              // Refresh the available games
-              _gameService.refreshAvailableGames();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Refreshing available rooms...'),
-                  duration: Duration(milliseconds: 1000),
-                ),
-              );
-            },
-            tooltip: 'Refresh rooms',
+  Widget _buildRoomCard(GameSession game, int index) {
+    final roomColors = [
+      [Colors.pink, Colors.pinkAccent],
+      [Colors.blue, Colors.blueAccent],
+      [Colors.green, Colors.greenAccent],
+      [Colors.orange, Colors.orangeAccent],
+      [Colors.teal, Colors.tealAccent],
+    ];
+    
+    final colorSet = roomColors[index % roomColors.length];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [colorSet[0].withOpacity(0.1), colorSet[1].withOpacity(0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorSet[0].withOpacity(0.3),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorSet[0].withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () async {
+            final prefs = await SharedPreferences.getInstance();
+            final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
+            
+            await _gameService.joinGame(
+              game.id,
+              Player(
+                id: _playerId,
+                name: _playerName,
+                photoURL: savedAvatarColor,
+              ),
+            );
+            if (context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GameRoomScreen(
+                    gameId: game.id,
+                    userId: _playerId,
+                    userName: _playerName,
+                  ),
+                ),
+              );
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Room icon
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: colorSet,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorSet[0].withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.groups_rounded,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                
+                // Room details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Room ${index + 1}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.people,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${game.players.length}/3 players',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Open',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Join button
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorSet[0].withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: colorSet[0],
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvailableRoomsHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.deepPurple,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              "Available Rooms",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded),
+          color: Colors.deepPurple,
+          onPressed: () {
+            _gameService.refreshAvailableGames();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Refreshing rooms...'),
+                backgroundColor: Colors.deepPurple,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                duration: const Duration(milliseconds: 1000),
+              ),
+            );
+          },
+          tooltip: 'Refresh rooms',
+        ),
+      ],
     );
   }
 
@@ -246,18 +662,34 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Server Settings'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.settings, color: Colors.deepPurple),
+            SizedBox(width: 8),
+            Text('Server Settings'),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('WebSocket Server URL:'),
+            const Text(
+              'WebSocket Server URL:',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: urlController,
               decoration: InputDecoration(
                 hintText: 'ws://192.168.200.163:8080',
+                prefixIcon: const Icon(Icons.link, color: Colors.deepPurple),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
                 ),
               ),
             ),
@@ -277,11 +709,24 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Server URL updated successfully')),
+                    SnackBar(
+                      content: const Text('Server URL updated successfully'),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   );
                 }
               }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             child: const Text('Save'),
           ),
         ],
@@ -292,87 +737,147 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.deepPurple.shade900,
-      appBar: AppBar(
-        backgroundColor: Colors.deepPurple.shade900,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showServerSettingsDialog,
-            tooltip: 'Server Settings',
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.deepPurple.shade900,
+              Colors.deepPurple.shade700,
+              Colors.purple.shade600,
+            ],
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
+        ),
+        child: Stack(
           children: [
-            // Featured Card for create game
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                color: Colors.deepPurpleAccent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "FEATURED",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.bold,
+            _buildAnimatedBackground(),
+            
+            SafeArea(
+              child: Column(
+                children: [
+                  // App bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.settings_rounded, color: Colors.white),
+                          onPressed: _showServerSettingsDialog,
+                          tooltip: 'Server Settings',
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Take part in challenges with friends or other players",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: _createGame,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.deepPurple,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ],
+                    ),
+                  ),
+                  
+                  // Scrollable content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          // Header
+                          _buildHeader(),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Featured card
+                          _buildFeaturedCard(),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Available rooms section
+                          Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(32),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: _buildAvailableRoomsHeader(),
+                                ),
+                                Container(
+                                  constraints: BoxConstraints(
+                                    maxHeight: MediaQuery.of(context).size.height * 0.6,
+                                  ),
+                                  child: _buildAvailableGames(),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: const Text("Create a room"),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ),
-            // Expanded container with join game inputs and available games list
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      _buildAvailableRoomsHeader(),
-                      const SizedBox(height: 20),
-                      Expanded(
-                        child: _buildAvailableGames(),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+// Particle class for background animation
+class Particle {
+  final double x;
+  final double y;
+  final double size;
+  final double speed;
+
+  Particle({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.speed,
+  });
+
+  factory Particle.random() {
+    final random = math.Random();
+    return Particle(
+      x: random.nextDouble(),
+      y: random.nextDouble(),
+      size: 2 + random.nextDouble() * 4,
+      speed: 0.1 + random.nextDouble() * 0.3,
+    );
+  }
+}
+
+// Particle painter for animated background
+class ParticlePainter extends CustomPainter {
+  final List<Particle> particles;
+  final double progress;
+
+  ParticlePainter({
+    required this.particles,
+    required this.progress,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.3)
+      ..style = PaintingStyle.fill;
+
+    for (var particle in particles) {
+      final x = particle.x * size.width;
+      final y = ((particle.y + (progress * particle.speed)) % 1.0) * size.height;
+      
+      canvas.drawCircle(
+        Offset(x, y),
+        particle.size,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(ParticlePainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }

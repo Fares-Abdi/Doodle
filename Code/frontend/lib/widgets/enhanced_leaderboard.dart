@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/game_session.dart';
+import 'dart:math';
 
 class EnhancedLeaderboard extends StatefulWidget {
   final GameSession session;
@@ -93,11 +94,31 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                     child: AnimatedBuilder(
                       animation: _sparkleController,
                       builder: (context, child) {
-                        return CustomPaint(
-                          painter: SparklePainter(
-                            animation: _sparkleController,
-                            color: const Color(0xFFFFD700),
-                          ),
+                        return Stack(
+                          children: [
+                            // Animated glow effect
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFFFD700).withOpacity(
+                                      0.3 + (sin(_sparkleController.value * pi * 2) * 0.2),
+                                    ),
+                                    blurRadius: 15 + (sin(_sparkleController.value * pi * 2) * 5).abs(),
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Sparkle particles
+                            CustomPaint(
+                              painter: SparklePainter(
+                                animation: _sparkleController,
+                                color: const Color(0xFFFFD700),
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -416,34 +437,39 @@ class SparklePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(0.6)
+      ..color = color.withOpacity(0.8)
       ..style = PaintingStyle.fill;
 
+    // More sparkles for better effect
     final sparkles = [
-      _Sparkle(size.width * 0.1, size.height * 0.2, 3, 0.0),
-      _Sparkle(size.width * 0.85, size.height * 0.3, 2.5, 0.2),
-      _Sparkle(size.width * 0.15, size.height * 0.7, 2, 0.4),
-      _Sparkle(size.width * 0.9, size.height * 0.75, 3.5, 0.6),
-      _Sparkle(size.width * 0.5, size.height * 0.1, 2, 0.3),
-      _Sparkle(size.width * 0.7, size.height * 0.85, 2.5, 0.5),
+      _Sparkle(size.width * 0.15, size.height * 0.2, 3, 0.0),
+      _Sparkle(size.width * 0.85, size.height * 0.15, 2.5, 0.15),
+      _Sparkle(size.width * 0.2, size.height * 0.75, 2, 0.3),
+      _Sparkle(size.width * 0.9, size.height * 0.8, 3.5, 0.45),
+      _Sparkle(size.width * 0.5, size.height * 0.1, 2.5, 0.1),
+      _Sparkle(size.width * 0.75, size.height * 0.85, 2.5, 0.35),
+      _Sparkle(size.width * 0.05, size.height * 0.5, 2, 0.25),
+      _Sparkle(size.width * 0.95, size.height * 0.5, 2, 0.5),
     ];
 
     for (var sparkle in sparkles) {
       final progress = ((animation.value + sparkle.delay) % 1.0);
       final opacity = (progress < 0.5 ? progress * 2 : (1 - progress) * 2).clamp(0.0, 1.0);
       
-      paint.color = color.withOpacity(opacity * 0.5);
+      paint.color = color.withOpacity(opacity * 0.7);
       
-      // Draw sparkle as a star shape
+      // Draw 4-pointed star sparkle
       final path = Path();
       final centerX = sparkle.x;
       final centerY = sparkle.y;
-      final size = sparkle.size * (0.5 + opacity * 0.5);
+      final size = sparkle.size * (0.6 + opacity * 0.6);
       
+      // Create a 4-pointed star
       for (int i = 0; i < 4; i++) {
         final angle = (i * 90.0) * (3.14159 / 180.0);
-        final x = centerX + size * 2 * cos(angle);
-        final y = centerY + size * 2 * sin(angle);
+        final outerRadius = size * 2.5;
+        final x = centerX + outerRadius * cos(angle);
+        final y = centerY + outerRadius * sin(angle);
         
         if (i == 0) {
           path.moveTo(x, y);
@@ -451,9 +477,11 @@ class SparklePainter extends CustomPainter {
           path.lineTo(x, y);
         }
         
+        // Inner point of star
         final innerAngle = ((i * 90.0) + 45.0) * (3.14159 / 180.0);
-        final innerX = centerX + size * cos(innerAngle);
-        final innerY = centerY + size * sin(innerAngle);
+        final innerRadius = size * 0.8;
+        final innerX = centerX + innerRadius * cos(innerAngle);
+        final innerY = centerY + innerRadius * sin(innerAngle);
         path.lineTo(innerX, innerY);
       }
       
