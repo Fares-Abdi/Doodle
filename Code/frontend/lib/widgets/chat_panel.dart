@@ -118,50 +118,19 @@ class ChatPanel extends StatelessWidget {
                 ),
               ),
               
-              // Players list with Instagram-style design
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.grey.shade100,
-                      width: 1,
-                    ),
-                  ),
-                ),
+              // Leaderboard with metallic medal podium
+              ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.2,
+                  maxHeight: MediaQuery.of(context).size.height * 0.35,
                 ),
                 child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      ...session.players.asMap().entries.map((entry) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: entry.value.id == userId
-                                ? LinearGradient(
-                                    colors: [
-                                      Colors.deepPurple.shade50,
-                                      Colors.deepPurple.shade100.withOpacity(0.5),
-                                    ],
-                                  )
-                                : null,
-                            color: entry.value.id != userId ? Colors.grey.shade50 : null,
-                            border: Border.all(
-                              color: entry.value.id == userId
-                                  ? Colors.deepPurple.shade300
-                                  : Colors.grey.shade200,
-                              width: entry.value.id == userId ? 1.5 : 1,
-                            ),
-                          ),
-                          child: buildPlayerTile(entry.value),
-                        ),
-                      )),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    child: Column(
+                      children: [
+                        ..._buildLeaderboard(context),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -184,5 +153,254 @@ class ChatPanel extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildLeaderboard(BuildContext context) {
+    // Sort players by score in descending order
+    final sortedPlayers = List<Player>.from(session.players)
+      ..sort((a, b) => b.score.compareTo(a.score));
+
+    return sortedPlayers.asMap().entries.map((entry) {
+      final index = entry.key;
+      final player = entry.value;
+      final isCurrentUser = player.id == userId;
+      
+      // Determine medal type
+      final medalType = index == 0 ? 'gold' : index == 1 ? 'silver' : index == 2 ? 'bronze' : null;
+      
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Stack(
+          children: [
+            // Metallic card background
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: _getMetallicGradient(medalType),
+                boxShadow: [
+                  BoxShadow(
+                    color: _getMedalColor(medalType).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(
+                  color: isCurrentUser
+                      ? Colors.deepPurple.shade300
+                      : _getMedalColor(medalType).withOpacity(0.4),
+                  width: isCurrentUser ? 2 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  // Medal badge
+                  if (medalType != null)
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: _getMedalGradient(medalType),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _getMedalColor(medalType).withOpacity(0.6),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          _getMedalEmoji(medalType),
+                          style: const TextStyle(fontSize: 28),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey.shade300,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 12),
+                  
+                  // Player info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          player.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: isCurrentUser
+                                ? Colors.deepPurple.shade700
+                                : Colors.grey.shade900,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          player.isDrawing ? '🎨 Drawing' : 'Guessing',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Score badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isCurrentUser
+                          ? Colors.deepPurple.shade100
+                          : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isCurrentUser
+                            ? Colors.deepPurple.shade300
+                            : Colors.grey.shade400,
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      '${player.score} pts',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: isCurrentUser
+                            ? Colors.deepPurple.shade700
+                            : Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  LinearGradient _getMetallicGradient(String? medalType) {
+    switch (medalType) {
+      case 'gold':
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFD700),
+            Color(0xFFFFA500),
+            Color(0xFFFF8C00),
+          ],
+        );
+      case 'silver':
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFC0C0C0),
+            Color(0xFFE8E8E8),
+            Color(0xFFA9A9A9),
+          ],
+        );
+      case 'bronze':
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFCD7F32),
+            Color(0xFFB87333),
+            Color(0xFFA0826D),
+          ],
+        );
+      default:
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.grey.shade100,
+            Colors.grey.shade200,
+          ],
+        );
+    }
+  }
+
+  Color _getMedalColor(String? medalType) {
+    switch (medalType) {
+      case 'gold':
+        return const Color(0xFFFFD700);
+      case 'silver':
+        return const Color(0xFFC0C0C0);
+      case 'bronze':
+        return const Color(0xFFCD7F32);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  List<Color> _getMedalGradient(String medalType) {
+    switch (medalType) {
+      case 'gold':
+        return [
+          Color(0xFFFFED4E),
+          Color(0xFFFFD700),
+          Color(0xFFFFA500),
+        ];
+      case 'silver':
+        return [
+          Color(0xFFF5F5F5),
+          Color(0xFFE8E8E8),
+          Color(0xFFC0C0C0),
+        ];
+      case 'bronze':
+        return [
+          Color(0xFFE8A76F),
+          Color(0xFFCD7F32),
+          Color(0xFFA0826D),
+        ];
+      default:
+        return [Colors.grey.shade300, Colors.grey.shade400];
+    }
+  }
+
+  String _getMedalEmoji(String medalType) {
+    switch (medalType) {
+      case 'gold':
+        return '🥇';
+      case 'silver':
+        return '🥈';
+      case 'bronze':
+        return '🥉';
+      default:
+        return '🎖️';
+    }
   }
 }
