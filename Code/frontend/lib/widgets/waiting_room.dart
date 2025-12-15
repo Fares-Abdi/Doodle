@@ -30,16 +30,20 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   bool _roomDestroyed = false;
   late TextEditingController _nameController;
   late AnimationController _animationController;
+  late AnimationController _buttonGlowController;
+  late AnimationController _playerJoinController;
   
   static const int maxPlayersPerGame = 6;
-  late Map<String, Player> _displayPlayers; // Local copy for UI updates
+  late Map<String, Player> _displayPlayers;
+  String? _lastJoinedPlayerId;
+  String? _playerLeftMessage;
 
   @override
   void initState() {
     super.initState();
     _leavingPlayers = {};
     _previousPlayers = List.from(widget.session.players);
-    _displayPlayers = {for (var p in widget.session.players) p.id: p}; // Local copy
+    _displayPlayers = {for (var p in widget.session.players) p.id: p};
     final currentPlayer = widget.session.players.firstWhere(
       (p) => p.id == widget.userId,
       orElse: () => Player(id: widget.userId, name: 'Player'),
@@ -52,9 +56,20 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat(reverse: true);
+    
+    // Initialize button glow controller
+    _buttonGlowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    
+    // Initialize player join animation controller
+    _playerJoinController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
   }
 
-  /// Load saved player profile from local storage
   Future<void> _loadSavedProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final savedName = prefs.getString('player_name_${widget.userId}');
@@ -64,7 +79,6 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
     }
   }
 
-  /// Save player profile to local storage
   Future<void> _saveProfileLocally(String name, String avatarColor) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('player_name_${widget.userId}', name);
@@ -75,10 +89,11 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   void dispose() {
     _nameController.dispose();
     _animationController.dispose();
+    _buttonGlowController.dispose();
+    _playerJoinController.dispose();
     super.dispose();
   }
 
-  /// Check if all players have exited the waiting room (should trigger room destruction)
   bool _haveAllPlayersExited() {
     return widget.session.players.isEmpty;
   }
@@ -87,46 +102,57 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   void didUpdateWidget(WaitingRoom oldWidget) {
     super.didUpdateWidget(oldWidget);
     
-    // Sync display players with parent changes
-    // This ensures we get updated players from the stream
     _displayPlayers = {for (var p in widget.session.players) p.id: p};
     
-    // Find players who left the game
     final currentPlayerIds = widget.session.players.map((p) => p.id).toSet();
     final previousPlayerIds = _previousPlayers.map((p) => p.id).toSet();
     
-    // Players who were in previous list but not in current list have left
     final leftPlayerIds = previousPlayerIds.difference(currentPlayerIds);
+    final joinedPlayerIds = currentPlayerIds.difference(previousPlayerIds);
     
     if (leftPlayerIds.isNotEmpty) {
-      // Mark players as leaving for animation
       setState(() {
         _leavingPlayers.addAll(leftPlayerIds);
+        final count = leftPlayerIds.length;
+        _playerLeftMessage = '$count player${count > 1 ? 's' : ''} left the room';
       });
       
-      // After animation, remove them from leaving set
-      Future.delayed(const Duration(milliseconds: 600), () {
+      Future.delayed(const Duration(milliseconds: 2000), () {
         if (mounted) {
           setState(() {
             _leavingPlayers.removeAll(leftPlayerIds);
+            _playerLeftMessage = null;
           });
         }
       });
     }
     
-    // Check if all players have exited - destroy/abort the room
+    if (joinedPlayerIds.isNotEmpty) {
+      if (_previousPlayers.isNotEmpty) {
+        setState(() {
+          _lastJoinedPlayerId = joinedPlayerIds.first;
+        });
+        _playerJoinController.forward(from: 0);
+        
+        Future.delayed(const Duration(milliseconds: 600), () {
+          if (mounted) {
+            setState(() {
+              _lastJoinedPlayerId = null;
+            });
+          }
+        });
+      }
+    }
+    
     if (_haveAllPlayersExited() && !_roomDestroyed) {
       _roomDestroyed = true;
       _handleRoomDestruction();
     }
     
-    // Update previous players list
     _previousPlayers = List.from(widget.session.players);
   }
 
-  /// Handle room destruction when all players exit
   void _handleRoomDestruction() {
-    // Show notification about room being destroyed
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('All players left. Room has been destroyed.'),
@@ -135,7 +161,6 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
       ),
     );
     
-    // Go back to lobby after a short delay
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         widget.onBack();
@@ -150,12 +175,10 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
       child: Scaffold(
         body: Stack(
           children: [
-            // Animated gradient background
             _buildAnimatedGradientBackground(),
             SafeArea(
               child: Column(
                 children: [
-                  // Header with back and profile buttons
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
@@ -185,7 +208,6 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
                   ),
                   const SizedBox(height: 20),
 
-                  // 👥 Players Grid
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -193,62 +215,84 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
                     ),
                   ),
 
-                  // ⏳ Waiting text & Connection status
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: _buildConnectionStatus(),
                   ),
 
-                  // ✅ Ready button
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: widget.session.players.length >= 2 ? widget.onStartGame : null,
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: EdgeInsets.zero,
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.black45,
-                          elevation: 8,
-                          disabledBackgroundColor: Colors.transparent,
-                        ),
-                        child: Ink(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: AnimatedBuilder(
+                      animation: _buttonGlowController,
+                      builder: (context, child) {
+                        final canStart = widget.session.players.length >= 2;
+                        final glowIntensity = canStart 
+                            ? 0.2 + (_buttonGlowController.value * 0.3) 
+                            : 0.0;
+                        
+                        return Container(
                           decoration: BoxDecoration(
-                            gradient: widget.session.players.length >= 2
-                                ? const LinearGradient(
-                                    colors: [
-                                      Color(0xFF6C2BD9),
-                                      Color(0xFFE056FD),
-                                    ],
-                                  )
-                                : LinearGradient(
-                                    colors: [
-                                      Colors.grey.withOpacity(0.3),
-                                      Colors.grey.withOpacity(0.5),
-                                    ],
-                                  ),
-                            borderRadius: const BorderRadius.all(Radius.circular(30)),
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: canStart ? [
+                              BoxShadow(
+                                color: const Color(0xFF9D4EDD).withOpacity(glowIntensity),
+                                blurRadius: 12 + (glowIntensity * 8),
+                                spreadRadius: 1 + (glowIntensity * 1),
+                              ),
+                              BoxShadow(
+                                color: const Color(0xFFC77DFF).withOpacity(glowIntensity * 0.3),
+                                blurRadius: 16 + (glowIntensity * 12),
+                                spreadRadius: 2 + (glowIntensity * 2),
+                              ),
+                            ] : [],
                           ),
-                          child: Center(
-                            child: Text(
-                              widget.session.players.length >= 2 ? "START GAME" : "WAITING FOR PLAYERS",
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: canStart ? widget.onStartGame : null,
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                padding: EdgeInsets.zero,
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                elevation: 0,
+                                disabledBackgroundColor: Colors.transparent,
+                              ),
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: canStart
+                                      ? const LinearGradient(
+                                          colors: [
+                                            Color(0xFF7B2CBF),
+                                            Color(0xFF9D4EDD),
+                                          ],
+                                        )
+                                      : LinearGradient(
+                                          colors: [
+                                            Colors.grey.withOpacity(0.2),
+                                            Colors.grey.withOpacity(0.3),
+                                          ],
+                                        ),
+                                  borderRadius: const BorderRadius.all(Radius.circular(30)),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    canStart ? "START GAME" : "WAITING FOR PLAYERS",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: canStart ? Colors.white : Colors.white54,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -264,8 +308,8 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
-        // Create a smooth animated gradient with more visible color transitions
         final animValue = _animationController.value;
+        final sineValue = (sin(animValue * 6.28) + 1) / 2;
         
         return Container(
           decoration: BoxDecoration(
@@ -273,17 +317,15 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                // Smooth color transition for first color
                 Color.lerp(
-                  const Color(0xFF2C1447),
-                  const Color(0xFF1f0a3d),
-                  (sin(animValue * 6.28) + 1) / 2,
+                  const Color(0xFF1A0B2E),
+                  const Color(0xFF2D1B4E),
+                  sineValue,
                 )!,
-                // Smooth color transition for second color  
                 Color.lerp(
-                  const Color(0xFF6C2BD9),
-                  const Color(0xFFa855f7),
-                  (sin(animValue * 6.28) + 1) / 2,
+                  const Color(0xFF2D1B4E),
+                  const Color(0xFF4A2C6D),
+                  sineValue,
                 )!,
               ],
             ),
@@ -301,23 +343,37 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
       mainAxisSpacing: 20,
       crossAxisSpacing: 20,
       children: [
-        // Display existing players
         ..._displayPlayers.values.map((player) {
           final isLeavingPlayer = _leavingPlayers.contains(player.id);
+          final isJoiningPlayer = _lastJoinedPlayerId == player.id;
           
-          return AnimatedOpacity(
-            opacity: isLeavingPlayer ? 0.5 : 1.0,
-            duration: const Duration(milliseconds: 300),
-            child: _buildPlayerCard(
-              name: player.name,
-              avatarColor: player.photoURL ?? 'blue',
-              isCurrentUser: player.id == widget.userId,
-              isLeaving: isLeavingPlayer,
-              player: player,
-            ),
+          return AnimatedBuilder(
+            animation: _playerJoinController,
+            builder: (context, child) {
+              final scale = isJoiningPlayer 
+                  ? 0.5 + (_playerJoinController.value * 0.5)
+                  : 1.0;
+              final opacity = isLeavingPlayer 
+                  ? 0.3 
+                  : (isJoiningPlayer ? _playerJoinController.value : 1.0);
+              
+              return Transform.scale(
+                scale: scale,
+                child: AnimatedOpacity(
+                  opacity: opacity,
+                  duration: const Duration(milliseconds: 300),
+                  child: _buildPlayerCard(
+                    name: player.name,
+                    avatarColor: player.photoURL ?? 'blue',
+                    isCurrentUser: player.id == widget.userId,
+                    isLeaving: isLeavingPlayer,
+                    player: player,
+                  ),
+                ),
+              );
+            },
           );
         }),
-        // Display empty slots
         ...List.generate(
           emptySlots,
           (index) => const _EmptySlot(),
@@ -351,17 +407,18 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withOpacity(0.06),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isCurrentUser ? const Color(0xFFE056FD) : Colors.white12,
-            width: isCurrentUser ? 2 : 1,
+            color: isCurrentUser ? const Color(0xFF9D4EDD) : Colors.white.withOpacity(0.1),
+            width: isCurrentUser ? 2.5 : 1,
           ),
           boxShadow: isCurrentUser
               ? [
                   BoxShadow(
-                    color: const Color(0xFFE056FD).withOpacity(0.4),
-                    blurRadius: 12,
+                    color: const Color(0xFF9D4EDD).withOpacity(0.4),
+                    blurRadius: 16,
+                    spreadRadius: 2,
                   ),
                 ]
               : [],
@@ -369,7 +426,6 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Avatar circle
             Container(
               width: 50,
               height: 50,
@@ -407,12 +463,15 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
                 Icon(
                   Icons.circle,
                   size: 10,
-                  color: isCurrentUser ? Colors.yellow : Colors.greenAccent,
+                  color: isCurrentUser ? const Color(0xFFFFC857) : const Color(0xFF7FE9DE),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   isCurrentUser ? 'You' : 'Joined',
-                  style: const TextStyle(color: Color(0xFFEDE4FF)),
+                  style: const TextStyle(
+                    color: Color(0xFFD1B7FF),
+                    fontSize: 13,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -425,28 +484,47 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   }
 
   Widget _buildConnectionStatus() {
-    // Show status message if players have exited
-    if (_leavingPlayers.isNotEmpty) {
-      final exitingCount = _leavingPlayers.length;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Text(
-          '$exitingCount player${exitingCount > 1 ? 's' : ''} left the room',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.redAccent,
-          ),
-        ),
+    if (_playerLeftMessage != null) {
+      return TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 400),
+        builder: (context, value, child) {
+          return Transform.translate(
+            offset: Offset(0, 10 * (1 - value)),
+            child: Opacity(
+              opacity: value,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade900.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                  ),
+                  child: Text(
+                    _playerLeftMessage!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       );
     }
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         'Players: ${_displayPlayers.length}/$maxPlayersPerGame',
         style: const TextStyle(
-          color: Color(0xFFEDE4FF),
+          color: Color(0xFFD1B7FF),
           fontSize: 16,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -463,10 +541,8 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
       builder: (context) => PlayerProfileEditor(
         player: currentPlayer,
         onSave: (name, avatarColor) {
-          // Close dialog first to dismiss keyboard
           Navigator.of(context).pop();
           
-          // Update local display immediately for better UX
           setState(() {
             _displayPlayers[widget.userId] = Player(
               id: widget.userId,
@@ -478,10 +554,8 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
             );
           });
           
-          // Save to local storage for persistence
           _saveProfileLocally(name, avatarColor);
           
-          // Send update to backend
           _gameService.updatePlayer(
             widget.session.id,
             widget.userId,
@@ -508,7 +582,6 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Send leave_game message before going back
                 _gameService.leaveGame(widget.session.id);
                 widget.onBack();
               },
@@ -522,7 +595,7 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
 
   Future<bool> _onBackPressed() async {
     _showExitConfirmation();
-    return false; // Prevent default back button behavior
+    return false;
   }
 }
 
@@ -535,16 +608,17 @@ class _EmptySlot extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white24,
+          color: Colors.white.withOpacity(0.15),
           style: BorderStyle.solid,
         ),
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withOpacity(0.03),
       ),
       child: const Center(
         child: Text(
           'Waiting for\nplayer...',
           style: TextStyle(
-            color: Color(0xFFD1B7FF),
+            color: Color(0xFFB595D4),
+            fontSize: 14,
           ),
           textAlign: TextAlign.center,
         ),
