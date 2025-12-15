@@ -17,11 +17,11 @@ const POINTS_FOR_DRAWING = 50;
 const words = [
   'couscous','chorba','bourek','zlabia','kalb elouz','makrout','baklawa','tchektchouka',
   'hrira','dolma','garantita','mahjeb','kesra',
-  'koursi','tabla','tberna','sebta','gandoura','burnous','hayek','tarbouche',
-  'chta','chems','rih','bhar','djebel','sahara','khemsin','ghabra','kharif','ghaba','trab','wad','rmel','njoum',
-  'souk','hammam','hanut','dar','zouj','qahoua','jame3','zanka','cartier','houma','baladia','saha','mdrassa','melha','chra3','marsa',
-  'derbouka','gasba','oud','keskas','tajin','mhrez','meqla',
-  'tilifoun','tomobile','telefision','radio','portable','ordinateur','internet','facebook','taxi','karossa','camion','metro','tram','train','bus',
+  'koursi','tabla','sebta','gandoura','burnous','hayek','tarbouche',
+  'chta','chems','rih','bhar','djebel','sahara','kharif','trab','wad','rmel','njoum',
+  'souk','hammam','hanut','dar','zouj','qahoua','jamer','houma','baladia','mdrassa','melha','chra3','marsa',
+  'derbouka','gasba','oud','keskas','tajin','meqla',
+  'tilifoun','tomobile','television','radio','portable','ordinateur','internet','facebook','taxi','karossa','camion','metro','tram','train','bus',
   'kelb','djaj','begra','himar','khrouf','marza','serdouk','fakroun','dib','arneb','jrana'
 ];
 
