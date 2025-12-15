@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math';
 import '../models/game_session.dart';
 import '../services/game_service.dart';
-import 'player_avatar.dart';
 import 'player_profile_editor.dart';
 
 class WaitingRoom extends StatefulWidget {
@@ -23,32 +23,20 @@ class WaitingRoom extends StatefulWidget {
   State<WaitingRoom> createState() => _WaitingRoomState();
 }
 
-class _WaitingRoomState extends State<WaitingRoom> {
-  late Set<String> _animatedPlayers;
+class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin {
   late Set<String> _leavingPlayers;
   late List<Player> _previousPlayers;
   final GameService _gameService = GameService();
   bool _roomDestroyed = false;
   late TextEditingController _nameController;
-  bool _isEditingName = false;
-  late String _selectedAvatarColor;
-  late Map<String, Player> _displayPlayers; // Local copy for UI updates
+  late AnimationController _animationController;
   
-  static const List<Color> avatarColors = [
-    Colors.red,
-    Colors.pink,
-    Colors.orange,
-    Colors.yellow,
-    Colors.green,
-    Colors.blue,
-    Colors.indigo,
-    Colors.purple,
-  ];
+  static const int maxPlayersPerGame = 6;
+  late Map<String, Player> _displayPlayers; // Local copy for UI updates
 
   @override
   void initState() {
     super.initState();
-    _animatedPlayers = {};
     _leavingPlayers = {};
     _previousPlayers = List.from(widget.session.players);
     _displayPlayers = {for (var p in widget.session.players) p.id: p}; // Local copy
@@ -57,23 +45,22 @@ class _WaitingRoomState extends State<WaitingRoom> {
       orElse: () => Player(id: widget.userId, name: 'Player'),
     );
     _nameController = TextEditingController(text: currentPlayer.name);
-    _selectedAvatarColor = currentPlayer.photoURL ?? 'blue';
     _loadSavedProfile();
+    
+    // Initialize animated gradient controller
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat(reverse: true);
   }
 
   /// Load saved player profile from local storage
   Future<void> _loadSavedProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final savedName = prefs.getString('player_name_${widget.userId}');
-    final savedColor = prefs.getString('player_avatar_${widget.userId}');
     
     if (savedName != null) {
       _nameController.text = savedName;
-    }
-    if (savedColor != null) {
-      setState(() {
-        _selectedAvatarColor = savedColor;
-      });
     }
   }
 
@@ -87,12 +74,8 @@ class _WaitingRoomState extends State<WaitingRoom> {
   @override
   void dispose() {
     _nameController.dispose();
+    _animationController.dispose();
     super.dispose();
-  }
-
-  /// Check if a player has exited the waiting room
-  bool _hasPlayerExited(String playerId) {
-    return !widget.session.players.any((p) => p.id == playerId);
   }
 
   /// Check if all players have exited the waiting room (should trigger room destruction)
@@ -164,73 +147,307 @@ class _WaitingRoomState extends State<WaitingRoom> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: _onBackPressed,
-      child: Stack(
-        children: [
-          // Background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color.fromARGB(255, 39, 28, 85), Color.fromARGB(255, 96, 30, 144)],
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                // Custom App Bar for waiting room
-                _buildAppBar(),
-                Expanded(
-                  child: SingleChildScrollView(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Animated gradient background
+            _buildAnimatedGradientBackground(),
+            SafeArea(
+              child: Column(
+                children: [
+                  // Header with back and profile buttons
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: _showExitConfirmation,
+                        ),
+                        const Expanded(
+                          child: Text(
+                            'Waiting Room',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.person_outline, color: Colors.white),
+                          onPressed: _showProfileEditor,
+                          tooltip: 'Edit Profile',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 👥 Players Grid
+                  Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildPlayersCountText(),
-                          const SizedBox(height: 32),
-                          _buildPlayerAvatars(),
-                          const SizedBox(height: 40),
-                          _buildStartButton(),
-                        ],
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildPlayersGrid(),
+                    ),
+                  ),
+
+                  // ⏳ Waiting text & Connection status
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: _buildConnectionStatus(),
+                  ),
+
+                  // ✅ Ready button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: widget.session.players.length >= 2 ? widget.onStartGame : null,
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: EdgeInsets.zero,
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.black45,
+                          elevation: 8,
+                          disabledBackgroundColor: Colors.transparent,
+                        ),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: widget.session.players.length >= 2
+                                ? const LinearGradient(
+                                    colors: [
+                                      Color(0xFF6C2BD9),
+                                      Color(0xFFE056FD),
+                                    ],
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      Colors.grey.withOpacity(0.3),
+                                      Colors.grey.withOpacity(0.5),
+                                    ],
+                                  ),
+                            borderRadius: const BorderRadius.all(Radius.circular(30)),
+                          ),
+                          child: Center(
+                            child: Text(
+                              widget.session.players.length >= 2 ? "START GAME" : "WAITING FOR PLAYERS",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAppBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: _showExitConfirmation,
-          ),
-          const Expanded(
-            child: Text(
-              'Waiting Room',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+  Widget _buildAnimatedGradientBackground() {
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        // Create a smooth animated gradient with more visible color transitions
+        final animValue = _animationController.value;
+        
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                // Smooth color transition for first color
+                Color.lerp(
+                  const Color(0xFF2C1447),
+                  const Color(0xFF1f0a3d),
+                  (sin(animValue * 6.28) + 1) / 2,
+                )!,
+                // Smooth color transition for second color  
+                Color.lerp(
+                  const Color(0xFF6C2BD9),
+                  const Color(0xFFa855f7),
+                  (sin(animValue * 6.28) + 1) / 2,
+                )!,
+              ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.person_outline, color: Colors.white),
-            onPressed: _showProfileEditor,
-            tooltip: 'Edit Profile',
+        );
+      },
+    );
+  }
+
+  Widget _buildPlayersGrid() {
+    final emptySlots = maxPlayersPerGame - _displayPlayers.length;
+    
+    return GridView.count(
+      crossAxisCount: 2,
+      mainAxisSpacing: 20,
+      crossAxisSpacing: 20,
+      children: [
+        // Display existing players
+        ..._displayPlayers.values.map((player) {
+          final isLeavingPlayer = _leavingPlayers.contains(player.id);
+          
+          return AnimatedOpacity(
+            opacity: isLeavingPlayer ? 0.5 : 1.0,
+            duration: const Duration(milliseconds: 300),
+            child: _buildPlayerCard(
+              name: player.name,
+              avatarColor: player.photoURL ?? 'blue',
+              isCurrentUser: player.id == widget.userId,
+              isLeaving: isLeavingPlayer,
+              player: player,
+            ),
+          );
+        }),
+        // Display empty slots
+        ...List.generate(
+          emptySlots,
+          (index) => const _EmptySlot(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlayerCard({
+    required String name,
+    required String avatarColor,
+    required bool isCurrentUser,
+    required bool isLeaving,
+    required Player player,
+  }) {
+    final colorMap = {
+      'red': Colors.red,
+      'pink': Colors.pink,
+      'orange': Colors.orange,
+      'yellow': Colors.yellow,
+      'green': Colors.green,
+      'blue': Colors.blue,
+      'indigo': Colors.indigo,
+      'purple': Colors.purple,
+    };
+
+    final bgColor = colorMap[avatarColor] ?? Colors.blue;
+
+    return GestureDetector(
+      onTap: isCurrentUser ? _showProfileEditor : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isCurrentUser ? const Color(0xFFE056FD) : Colors.white12,
+            width: isCurrentUser ? 2 : 1,
           ),
-        ],
+          boxShadow: isCurrentUser
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFE056FD).withOpacity(0.4),
+                    blurRadius: 12,
+                  ),
+                ]
+              : [],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Avatar circle
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.circle,
+                  size: 10,
+                  color: isCurrentUser ? Colors.yellow : Colors.greenAccent,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isCurrentUser ? 'You' : 'Joined',
+                  style: const TextStyle(color: Color(0xFFEDE4FF)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectionStatus() {
+    // Show status message if players have exited
+    if (_leavingPlayers.isNotEmpty) {
+      final exitingCount = _leavingPlayers.length;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Text(
+          '$exitingCount player${exitingCount > 1 ? 's' : ''} left the room',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.redAccent,
+          ),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Text(
+        'Players: ${_displayPlayers.length}/$maxPlayersPerGame',
+        style: const TextStyle(
+          color: Color(0xFFEDE4FF),
+          fontSize: 16,
+        ),
       ),
     );
   }
@@ -259,7 +476,6 @@ class _WaitingRoomState extends State<WaitingRoom> {
               isDrawing: currentPlayer.isDrawing,
               isCreator: currentPlayer.isCreator,
             );
-            _selectedAvatarColor = avatarColor;
           });
           
           // Save to local storage for persistence
@@ -308,104 +524,29 @@ class _WaitingRoomState extends State<WaitingRoom> {
     _showExitConfirmation();
     return false; // Prevent default back button behavior
   }
+}
 
-  Widget _buildPlayersCountText() {
-    return Text(
-      '${_displayPlayers.length} players are in the waiting room',
-      style: const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-        color: Colors.white
+class _EmptySlot extends StatelessWidget {
+  const _EmptySlot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white24,
+          style: BorderStyle.solid,
+        ),
+        color: Colors.white.withOpacity(0.04),
       ),
-    );
-  }
-
-  Widget _buildPlayerAvatars() {
-    // Show current players plus leaving players (for animation)
-    final displayList = <Player>[..._displayPlayers.values];
-    
-    // Add back players who are leaving so we can animate them out
-    for (final leavingId in _leavingPlayers) {
-      // Check if player is already in display list
-      if (displayList.any((p) => p.id == leavingId)) {
-        continue;
-      }
-      
-      // Try to find the leaving player in previous list
-      for (final player in _previousPlayers) {
-        if (player.id == leavingId) {
-          displayList.add(player);
-          break;
-        }
-      }
-    }
-    
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 24,
-      runSpacing: 24,
-      children: displayList.map((player) {
-        final isNewPlayer = !_animatedPlayers.contains(player.id) && 
-                           !_leavingPlayers.contains(player.id);
-        final isLeavingPlayer = _leavingPlayers.contains(player.id);
-        
-        return PlayerAvatar(
-          player: player,
-          isCurrentUser: player.id == widget.userId,
-          isNewPlayer: isNewPlayer,
-          isLeavingPlayer: isLeavingPlayer,
-          onAnimationEnd: () {
-            if (mounted && !isLeavingPlayer) {
-              setState(() {
-                _animatedPlayers.add(player.id);
-              });
-            }
-          },
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildConnectionStatus() {
-    // Show status message if players have exited
-    if (_leavingPlayers.isNotEmpty) {
-      final exitingCount = _leavingPlayers.length;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
+      child: const Center(
         child: Text(
-          '$exitingCount player${exitingCount > 1 ? 's' : ''} left the room',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.redAccent,
+          'Waiting for\nplayer...',
+          style: TextStyle(
+            color: Color(0xFFD1B7FF),
           ),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
-  }
-
-  Widget _buildStartButton() {
-    return ElevatedButton(
-      onPressed: widget.session.players.length >= 2 ? widget.onStartGame : null,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.deepPurple,
-        disabledBackgroundColor: Colors.white.withOpacity(0.3),
-        disabledForegroundColor: Colors.white.withOpacity(0.5),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 48,
-          vertical: 16
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)
-        ),
-      ),
-      child: Text(
-        widget.session.players.length >= 2 ? 'START GAME' : 'WAITING FOR PLAYERS',
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
+          textAlign: TextAlign.center,
         ),
       ),
     );

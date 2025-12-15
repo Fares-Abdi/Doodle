@@ -19,8 +19,6 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
   String _webSocketUrl = '';
 
   late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
@@ -31,20 +29,6 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
   }
 
   Future<void> _initializePlayer() async {
@@ -88,37 +72,6 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> with SingleTi
         MaterialPageRoute(
           builder: (context) => GameRoomScreen(
             gameId: session.id,
-            userId: _playerId,
-            userName: _playerName,
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _joinGame() async {
-    final gameId = _gameCodeController.text.trim();
-    if (gameId.isEmpty) return;
-    
-    // Load saved avatar color before joining game
-    final prefs = await SharedPreferences.getInstance();
-    final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
-    
-    // Join game logic
-    await _gameService.joinGame(
-      gameId,
-      Player(
-        id: _playerId,
-        name: _playerName,
-        photoURL: savedAvatarColor,
-      ),
-    );
-    if (context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => GameRoomScreen(
-            gameId: gameId,
             userId: _playerId,
             userName: _playerName,
           ),
