@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import '../../../models/game_session.dart';
 import '../utils/avatar_color_helper.dart';
+
+import '../utils/audio_mixin.dart';
+import '../utils/game_sounds.dart';
 import 'dart:math' as math;
 
 class GameOverScreen extends StatefulWidget {
@@ -19,7 +22,7 @@ class GameOverScreen extends StatefulWidget {
 }
 
 class _GameOverScreenState extends State<GameOverScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AudioMixin {
   late AnimationController _pillarController;
   late AnimationController _confettiController;
   late AnimationController _trophyController;
@@ -29,6 +32,7 @@ class _GameOverScreenState extends State<GameOverScreen>
   @override
   void initState() {
     super.initState();
+    _playGameOverAudio();
 
     _pillarController = AnimationController(
       duration: const Duration(milliseconds: 1200),
@@ -64,6 +68,10 @@ class _GameOverScreenState extends State<GameOverScreen>
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted) _confettiController.forward();
     });
+  }
+
+  void _playGameOverAudio() async {
+    await playGameOver();
   }
 
   @override

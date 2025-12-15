@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/game_session.dart';
 import '../../services/game_service.dart';
+import '../../utils/audio_mixin.dart';
+import '../../utils/game_sounds.dart';
 import '../../widgets/waiting_room.dart';
 import '../../widgets/round_transition.dart';
 import '../../widgets/game_over_screen.dart';
@@ -24,17 +26,19 @@ class GameRoomScreen extends StatefulWidget {
   State<GameRoomScreen> createState() => _GameRoomScreenState();
 }
 
-class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProviderStateMixin {
+class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProviderStateMixin, AudioMixin {
   final GameService _gameService = GameService();
   late Stream<GameSession> _gameStream;
   late AnimationController _chatPanelController;
   late Animation<double> _chatPanelAnimation;
   bool _isChatVisible = false;
+  bool _gameStarted = false;
 
   @override
   void initState() {
     super.initState();
     _gameStream = _gameService.subscribeToGame(widget.gameId);
+    _listenToGameState();
     
     _chatPanelController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -47,11 +51,22 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
     );
   }
 
+  void _listenToGameState() {
+    _gameStream.listen((gameSession) {
+      // When game state changes to drawing, switch to game music
+      if (!_gameStarted && gameSession.state == GameState.drawing) {
+        _gameStarted = true;
+        playBackgroundMusic(GameSounds.gameMusic);
+      }
+    });
+  }
+
   @override
   void dispose() {
     // Send leave_game message to server when leaving the room
     _gameService.leaveGame(widget.gameId);
     _chatPanelController.dispose();
+    stopBackgroundMusic();
     super.dispose();
   }
 

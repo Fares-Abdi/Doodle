@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/game_session.dart';
+import '../utils/audio_mixin.dart';
+import '../utils/game_sounds.dart';
 import 'advanced_drawing_canvas.dart';
 
 class GameBoard extends StatefulWidget {
@@ -19,7 +21,7 @@ class GameBoard extends StatefulWidget {
   State<GameBoard> createState() => _GameBoardState();
 }
 
-class _GameBoardState extends State<GameBoard> {
+class _GameBoardState extends State<GameBoard> with AudioMixin {
   late StreamController<int> _timerController;
   Timer? _timer;
   bool _roundEnded = false;
@@ -29,7 +31,12 @@ class _GameBoardState extends State<GameBoard> {
   void initState() {
     super.initState();
     _timerController = StreamController<int>.broadcast();
+    _playRoundStart();
     _startTimer();
+  }
+
+  void _playRoundStart() async {
+    await playRoundStart();
   }
 
   @override

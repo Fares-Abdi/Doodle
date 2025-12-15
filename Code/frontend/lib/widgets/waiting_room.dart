@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 import '../models/game_session.dart';
 import '../services/game_service.dart';
+import '../utils/audio_mixin.dart';
 import 'player_profile_editor.dart';
 
 class WaitingRoom extends StatefulWidget {
@@ -23,7 +24,7 @@ class WaitingRoom extends StatefulWidget {
   State<WaitingRoom> createState() => _WaitingRoomState();
 }
 
-class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin {
+class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin, AudioMixin {
   late Set<String> _leavingPlayers;
   late List<Player> _previousPlayers;
   final GameService _gameService = GameService();
@@ -129,6 +130,9 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
     
     if (joinedPlayerIds.isNotEmpty) {
       if (_previousPlayers.isNotEmpty) {
+        // Play player joined sound
+        playPlayerJoined();
+        
         setState(() {
           _lastJoinedPlayerId = joinedPlayerIds.first;
         });

@@ -34,6 +34,7 @@ dependencies:
   flutter_svg: ^1.0.0
   noise_meter: ^5.0.2  # Updated from ^3.1.0
   web_socket_channel: ^3.0.2
+  audioplayers: ^6.1.0
   
   
 dev_dependencies:
@@ -56,3 +57,4 @@ flutter:
     - assets/images/genback.png
     - assets/images/img2.png
     - assets/config.json
+    - assets/audio/music/

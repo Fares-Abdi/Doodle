@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/game_session.dart';
 import '../services/game_service.dart';
 import '../services/websocket_service.dart';
+import '../utils/audio_mixin.dart';
+import '../utils/game_sounds.dart';
 
 class GameChat extends StatefulWidget {
   final GameSession gameSession;
@@ -19,7 +21,7 @@ class GameChat extends StatefulWidget {
   State<GameChat> createState() => _GameChatState();
 }
 
-class _GameChatState extends State<GameChat> {
+class _GameChatState extends State<GameChat> with AudioMixin {
   final TextEditingController _messageController = TextEditingController();
   final GameService _gameService = GameService();
   final WebSocketService _wsService = WebSocketService();
@@ -47,7 +49,11 @@ class _GameChatState extends State<GameChat> {
 
     if (isCorrectGuess) {
       // Correct guess!
+      playCorrectGuess();
       _gameService.handleCorrectGuess(widget.gameSession.id, widget.userId);
+    } else {
+      // Wrong guess
+      playWrongGuess();
     }
 
     // Send message through WebSocket

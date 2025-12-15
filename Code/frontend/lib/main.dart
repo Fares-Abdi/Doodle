@@ -3,12 +3,17 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:doodle/screens/pages/scribble_lobby_screen.dart';
 import 'services/websocket_service.dart';
+import 'services/audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize WebSocket service
   WebSocketService();
+
+  // Initialize Audio service
+  final audioService = AudioService();
+  await audioService.initialize();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

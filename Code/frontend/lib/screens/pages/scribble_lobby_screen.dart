@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/game_service.dart';
 import '../../services/websocket_service.dart';
+import '../../utils/audio_mixin.dart';
+import '../../utils/game_sounds.dart';
 import 'game_room_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/game_session.dart';
@@ -13,7 +15,7 @@ class ScribbleLobbyScreen extends StatefulWidget {
 }
 
 class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> 
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AudioMixin {
   final GameService _gameService = GameService();
   final TextEditingController _gameCodeController = TextEditingController();
   late String _playerId;
@@ -30,6 +32,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
     super.initState();
     _initializePlayer();
     _loadWebSocketUrl();
+    _initializeAudio();
     
     _floatingController = AnimationController(
       vsync: this,
@@ -48,6 +51,11 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
 
     _particles = List.generate(20, (index) => Particle.random());
     _logoController.forward();
+  }
+
+  void _initializeAudio() async {
+    // Play lobby background music
+    await playBackgroundMusic(GameSounds.lobbyMusic);
   }
 
   Future<void> _initializePlayer() async {
@@ -72,10 +80,13 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
     _logoController.dispose();
     _particleController.dispose();
     _gameCodeController.dispose();
+    stopBackgroundMusic();
     super.dispose();
   }
 
   Future<void> _createGame() async {
+    await playButtonClick();
+    
     final prefs = await SharedPreferences.getInstance();
     final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
     
@@ -478,6 +489,8 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () async {
+            await playButtonClick();
+            
             final prefs = await SharedPreferences.getInstance();
             final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
             

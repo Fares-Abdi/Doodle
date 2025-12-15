@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/game_session.dart';
 import '../utils/avatar_color_helper.dart';
+import '../utils/audio_mixin.dart';
+import '../utils/game_sounds.dart';
 import 'dart:math' as math;
 
 class RoundTransition extends StatefulWidget {
@@ -16,7 +18,7 @@ class RoundTransition extends StatefulWidget {
 }
 
 class _RoundTransitionState extends State<RoundTransition>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AudioMixin {
   late AnimationController _drawController;
   late AnimationController _fadeController;
   late AnimationController _pencilController;
@@ -24,6 +26,7 @@ class _RoundTransitionState extends State<RoundTransition>
   @override
   void initState() {
     super.initState();
+    _playRoundTransitionAudio();
     
     _drawController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -43,6 +46,10 @@ class _RoundTransitionState extends State<RoundTransition>
     _drawController.forward();
     _fadeController.forward();
     _pencilController.forward();
+  }
+
+  void _playRoundTransitionAudio() async {
+    await getAudioService().playSfx(GameSounds.roundTransitionMusic);
   }
 
   @override
