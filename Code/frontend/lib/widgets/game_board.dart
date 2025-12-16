@@ -4,6 +4,7 @@ import '../models/game_session.dart';
 import '../utils/audio_mixin.dart';
 import '../utils/game_sounds.dart';
 import 'advanced_drawing_canvas.dart';
+import 'round_countdown.dart';
 
 class GameBoard extends StatefulWidget {
   final GameSession session;
@@ -25,6 +26,7 @@ class _GameBoardState extends State<GameBoard> with AudioMixin {
   late StreamController<int> _timerController;
   Timer? _timer;
   bool _roundEnded = false;
+  bool _showCountdown = true;
   static const int ROUND_DURATION = 80; // seconds
 
   @override
@@ -72,24 +74,41 @@ class _GameBoardState extends State<GameBoard> with AudioMixin {
   Widget build(BuildContext context) {
     final currentPlayer = widget.session.players.firstWhere((p) => p.id == widget.userId);
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.blue.shade50, Colors.purple.shade50],
-        ),
-      ),
-      child: Column(
-        children: [
-          // Top info bar
-          _buildGameHeader(currentPlayer),
-          // Canvas area
-          Expanded(
-            child: _buildDrawingCanvas(),
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.blue.shade50, Colors.purple.shade50],
+            ),
           ),
-        ],
-      ),
+          child: Column(
+            children: [
+              // Top info bar
+              _buildGameHeader(currentPlayer),
+              // Canvas area
+              Expanded(
+                child: _buildDrawingCanvas(),
+              ),
+            ],
+          ),
+        ),
+        // Countdown overlay
+        if (_showCountdown)
+          RoundCountdown(
+            session: widget.session,
+            userId: widget.userId,
+            onCountdownComplete: () {
+              if (mounted) {
+                setState(() {
+                  _showCountdown = false;
+                });
+              }
+            },
+          ),
+      ],
     );
   }
 
