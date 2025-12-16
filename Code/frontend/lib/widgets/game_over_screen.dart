@@ -71,7 +71,11 @@ class _GameOverScreenState extends State<GameOverScreen>
   }
 
   void _playGameOverAudio() async {
-    await playGameOver();
+    // Stop game music and play game over music
+    await stopBackgroundMusic();
+    Future.delayed(const Duration(milliseconds: 300), () async {
+      await playBackgroundMusic(GameSounds.gameOverMusic);
+    });
   }
 
   @override
@@ -228,6 +232,8 @@ class _GameOverScreenState extends State<GameOverScreen>
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
+                // Stop game over music - lobby screen will handle resuming lobby music
+                stopBackgroundMusic();
                 widget.onBackToLobby();
               },
               child: const Text('Exit', style: TextStyle(color: Colors.red)),

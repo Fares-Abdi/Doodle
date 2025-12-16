@@ -15,7 +15,7 @@ class ScribbleLobbyScreen extends StatefulWidget {
 }
 
 class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen> 
-    with TickerProviderStateMixin, AudioMixin {
+    with TickerProviderStateMixin, AudioMixin, WidgetsBindingObserver {
   final GameService _gameService = GameService();
   final TextEditingController _gameCodeController = TextEditingController();
   late String _playerId;
@@ -30,6 +30,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializePlayer();
     _loadWebSocketUrl();
     _initializeAudio();
@@ -51,6 +52,19 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
 
     _particles = List.generate(20, (index) => Particle.random());
     _logoController.forward();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Resume or play lobby music when app comes back to foreground
+      if (getAudioService().currentMusicTrack == GameSounds.lobbyMusic) {
+        resumeBackgroundMusic();
+      } else {
+        playBackgroundMusic(GameSounds.lobbyMusic);
+      }
+    }
   }
 
   void _initializeAudio() async {
@@ -76,11 +90,11 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _floatingController.dispose();
     _logoController.dispose();
     _particleController.dispose();
     _gameCodeController.dispose();
-    stopBackgroundMusic();
     super.dispose();
   }
 

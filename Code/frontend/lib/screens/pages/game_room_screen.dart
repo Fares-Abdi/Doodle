@@ -53,10 +53,13 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
 
   void _listenToGameState() {
     _gameStream.listen((gameSession) {
-      // When game state changes to drawing, switch to game music
+      // When game state changes to drawing, stop lobby music and switch to game music
       if (!_gameStarted && gameSession.state == GameState.drawing) {
         _gameStarted = true;
-        playBackgroundMusic(GameSounds.gameMusic);
+        stopBackgroundMusic();
+        Future.delayed(const Duration(milliseconds: 300), () {
+          playBackgroundMusic(GameSounds.gameMusic);
+        });
       }
     });
   }
@@ -66,7 +69,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
     // Send leave_game message to server when leaving the room
     _gameService.leaveGame(widget.gameId);
     _chatPanelController.dispose();
-    stopBackgroundMusic();
+    // Don't stop music here - let the lobby screen handle the audio
     super.dispose();
   }
 

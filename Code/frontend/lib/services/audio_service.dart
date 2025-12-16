@@ -26,9 +26,24 @@ class AudioService {
 
   /// Initialize audio service
   Future<void> initialize() async {
+    // Configure music player
     await _musicPlayer.setReleaseMode(ReleaseMode.loop);
     await _musicPlayer.setVolume(_musicVolume);
+    
+    // Configure SFX player with audio context that doesn't pause music
     await _sfxPlayer.setVolume(_sfxVolume);
+    await _sfxPlayer.setAudioContext(
+      AudioContext(
+        iOS: AudioContextIOS(
+          options: {
+            AVAudioSessionOptions.duckOthers,
+          },
+        ),
+        android: AudioContextAndroid(
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      ),
+    );
   }
 
   /// Play background music
