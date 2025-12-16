@@ -58,18 +58,31 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      // Resume or play lobby music when app comes back to foreground
-      if (getAudioService().currentMusicTrack == GameSounds.lobbyMusic) {
-        resumeBackgroundMusic();
-      } else {
+      // When app comes back to foreground, check if we should play lobby music
+      final currentTrack = getAudioService().currentMusicTrack;
+      
+      // Only play/resume if we're not already playing the lobby music
+      if (currentTrack == GameSounds.lobbyMusic && getAudioService().isMusicPlaying) {
+        // Already playing, don't restart
+        return;
+      }
+      
+      // If no music is playing or it's a different track, play lobby music
+      if (currentTrack != GameSounds.lobbyMusic) {
         playBackgroundMusic(GameSounds.lobbyMusic);
+      } else {
+        // Same track but paused, just resume
+        resumeBackgroundMusic();
       }
     }
   }
 
   void _initializeAudio() async {
-    // Play lobby background music
-    await playBackgroundMusic(GameSounds.lobbyMusic);
+    // Only play lobby music if not already playing
+    final currentTrack = getAudioService().currentMusicTrack;
+    if (currentTrack != GameSounds.lobbyMusic) {
+      await playBackgroundMusic(GameSounds.lobbyMusic);
+    }
   }
 
   Future<void> _initializePlayer() async {

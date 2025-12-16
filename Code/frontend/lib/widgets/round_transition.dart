@@ -49,7 +49,11 @@ class _RoundTransitionState extends State<RoundTransition>
   }
 
   void _playRoundTransitionAudio() async {
+    // Stop the game music
+    await stopBackgroundMusic();
+    // Play round transition SFX
     await getAudioService().playSfx(GameSounds.roundTransitionMusic);
+    // After transition, when game goes back to waiting, lobby music should be played by WaitingRoom
   }
 
   @override

@@ -232,9 +232,8 @@ class _GameOverScreenState extends State<GameOverScreen>
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Stop game over music - lobby screen will handle resuming lobby music
-                stopBackgroundMusic();
-                widget.onBackToLobby();
+                // Stop game over music and prepare to return to lobby
+                _stopGameOverAndReturnToLobby();
               },
               child: const Text('Exit', style: TextStyle(color: Colors.red)),
             ),
@@ -242,6 +241,15 @@ class _GameOverScreenState extends State<GameOverScreen>
         );
       },
     );
+  }
+
+  Future<void> _stopGameOverAndReturnToLobby() async {
+    // Stop game over music
+    await stopBackgroundMusic();
+    // Prepare lobby music to play
+    await playBackgroundMusic(GameSounds.lobbyMusic);
+    // Navigate back
+    widget.onBackToLobby();
   }
 
   Future<bool> _onBackPressed() async {

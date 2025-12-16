@@ -69,6 +69,22 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
+    
+    // Ensure lobby music continues in waiting room
+    _ensureLobbyMusicPlaying();
+  }
+
+  void _ensureLobbyMusicPlaying() async {
+    // Check if lobby music is already playing
+    final audioService = getAudioService();
+    if (audioService.currentMusicTrack == 'audio/music/lobby.mp3' && 
+        audioService.isMusicPlaying) {
+      // Already playing, do nothing
+      return;
+    }
+    
+    // Otherwise, play lobby music
+    await playBackgroundMusic('audio/music/lobby.mp3');
   }
 
   Future<void> _loadSavedProfile() async {
@@ -587,6 +603,7 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
               onPressed: () {
                 Navigator.of(context).pop();
                 _gameService.leaveGame(widget.session.id);
+                // Music will be handled by the parent screen
                 widget.onBack();
               },
               child: const Text('Exit', style: TextStyle(color: Colors.red)),

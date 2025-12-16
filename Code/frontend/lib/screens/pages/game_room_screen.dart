@@ -32,7 +32,6 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
   late AnimationController _chatPanelController;
   late Animation<double> _chatPanelAnimation;
   bool _isChatVisible = false;
-  bool _gameStarted = false;
 
   @override
   void initState() {
@@ -53,13 +52,28 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
 
   void _listenToGameState() {
     _gameStream.listen((gameSession) {
-      // When game state changes to drawing, stop lobby music and switch to game music
-      if (!_gameStarted && gameSession.state == GameState.drawing) {
-        _gameStarted = true;
+      // When game state changes to drawing, ensure game music is playing
+      if (gameSession.state == GameState.drawing) {
+        // Only stop music if it's not already the game music
+        if (getAudioService().currentMusicTrack != GameSounds.gameMusic) {
+          stopBackgroundMusic();
+          Future.delayed(const Duration(milliseconds: 300), () {
+            playBackgroundMusic(GameSounds.gameMusic);
+          });
+        }
+      }
+      
+      // When round ends, return to waiting room - music should switch back to lobby
+      if (gameSession.state == GameState.roundEnd) {
+        // Music will be handled by waiting room when it's shown
+        // But we should make sure to stop game music
         stopBackgroundMusic();
-        Future.delayed(const Duration(milliseconds: 300), () {
-          playBackgroundMusic(GameSounds.gameMusic);
-        });
+      }
+      
+      // When game is over, ensure lobby music will play when we return
+      if (gameSession.state == GameState.gameOver) {
+        // Game over screen will handle the music
+        // No action needed here
       }
     });
   }
@@ -69,7 +83,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
     // Send leave_game message to server when leaving the room
     _gameService.leaveGame(widget.gameId);
     _chatPanelController.dispose();
-    // Don't stop music here - let the lobby screen handle the audio
+    // Ensure lobby music plays when returning to lobby
+    playBackgroundMusic(GameSounds.lobbyMusic);
     super.dispose();
   }
 
@@ -153,7 +168,11 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
       return WaitingRoom(
         session: session,
         userId: widget.userId,
-        onStartGame: () => _gameService.startGame(widget.gameId),
+        onStartGame: () {
+          // Stop lobby music immediately when game starts
+          stopBackgroundMusic();
+          _gameService.startGame(widget.gameId);
+        },
         onBack: () => Navigator.of(context).pop(),
       );
     }

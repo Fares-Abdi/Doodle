@@ -14,6 +14,7 @@ class AudioService {
   double _sfxVolume = 0.7;
   
   String? _currentMusicTrack;
+  bool _isMusicPlaying = false;
 
   factory AudioService() {
     return _instance;
@@ -29,6 +30,11 @@ class AudioService {
     // Configure music player
     await _musicPlayer.setReleaseMode(ReleaseMode.loop);
     await _musicPlayer.setVolume(_musicVolume);
+    
+    // Listen to music player state changes
+    _musicPlayer.onPlayerStateChanged.listen((state) {
+      _isMusicPlaying = state == PlayerState.playing;
+    });
     
     // Configure SFX player with audio context that doesn't pause music
     await _sfxPlayer.setVolume(_sfxVolume);
@@ -56,9 +62,15 @@ class AudioService {
         await _musicPlayer.stop();
       }
       
+      // Don't restart the same music that's already playing
+      if (_currentMusicTrack == musicPath && _isMusicPlaying) {
+        return;
+      }
+      
       _currentMusicTrack = musicPath;
       await _musicPlayer.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.stop);
       await _musicPlayer.play(AssetSource(musicPath));
+      _isMusicPlaying = true;
     } catch (e) {
       print('Error playing music: $e');
     }
@@ -79,17 +91,20 @@ class AudioService {
   Future<void> stopMusic() async {
     await _musicPlayer.stop();
     _currentMusicTrack = null;
+    _isMusicPlaying = false;
   }
 
   /// Pause background music
   Future<void> pauseMusic() async {
     await _musicPlayer.pause();
+    _isMusicPlaying = false;
   }
 
   /// Resume background music
   Future<void> resumeMusic() async {
-    if (_currentMusicTrack != null) {
+    if (_currentMusicTrack != null && !_isMusicPlaying) {
       await _musicPlayer.resume();
+      _isMusicPlaying = true;
     }
   }
 
@@ -98,6 +113,7 @@ class AudioService {
     await _musicPlayer.stop();
     await _sfxPlayer.stop();
     _currentMusicTrack = null;
+    _isMusicPlaying = false;
   }
 
   /// Set music volume (0.0 - 1.0)
@@ -139,4 +155,5 @@ class AudioService {
   double get musicVolume => _musicVolume;
   double get sfxVolume => _sfxVolume;
   String? get currentMusicTrack => _currentMusicTrack;
+  bool get isMusicPlaying => _isMusicPlaying;
 }

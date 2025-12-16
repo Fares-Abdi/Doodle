@@ -45,8 +45,49 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Locale _locale = const Locale('en', '');
+  late final AudioService _audioService;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioService = AudioService();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.paused:
+        // App is paused (going to background)
+        _audioService.pauseMusic();
+        break;
+      case AppLifecycleState.resumed:
+        // App is resumed (coming to foreground)
+        _audioService.resumeMusic();
+        break;
+      case AppLifecycleState.detached:
+        // App is about to be terminated
+        _audioService.stopAll();
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden
+        _audioService.pauseMusic();
+        break;
+      case AppLifecycleState.inactive:
+        // App is inactive (not currently in focus)
+        break;
+    }
+  }
 
   void changeLanguage(Locale locale) {
     setState(() {
