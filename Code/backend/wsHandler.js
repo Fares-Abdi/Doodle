@@ -98,12 +98,12 @@ wss.on('connection', (ws) => {
         case 'start_game': {
           if (gm.games.has(gameId)) {
             const game = gm.games.get(gameId);
-            game.maxRounds = game.players.length;
+            game.maxRounds = game.players.length * 2;
             game.players.forEach((p, i) => p.isDrawing = i === 0);
             game.currentRound = 1;
             game.playersGuessedCorrect = [];
             game.state = 'GameState.preparing';
-            log('game', `Game ${gameId} started. Total rounds: ${game.maxRounds}`);
+            log('game', `Game ${gameId} started. Total rounds: ${game.maxRounds} (${game.players.length} players × 2)`);
             gm.startPrepPhase(gameId);
           }
           break;

@@ -13,16 +13,21 @@ const ROUND_END_DURATION = 2000; // 2 seconds
 const POINTS_FOR_CORRECT_GUESS = 100;
 const POINTS_FOR_DRAWING = 50;
 
-// Word list (cleaned up)
+// Word list (French words)
 const words = [
-  'couscous','chorba','bourek','zlabia','kalb elouz','makrout','baklawa','tchektchouka',
-  'hrira','dolma','garantita','mahjeb','kesra',
-  'koursi','tabla','sebta','gandoura','burnous','hayek','tarbouche',
-  'chta','chems','rih','bhar','djebel','sahara','kharif','trab','wad','rmel','njoum',
-  'souk','hammam','hanut','dar','zouj','qahoua','jamer','houma','baladia','mdrassa','melha','chra3','marsa',
-  'derbouka','gasba','oud','keskas','tajin','meqla',
-  'tilifoun','tomobile','television','radio','portable','ordinateur','internet','facebook','taxi','karossa','camion','metro','tram','train','bus',
-  'kelb','djaj','begra','himar','khrouf','marza','serdouk','fakroun','dib','arneb','jrana'
+  'chat','chien','maison','voiture','arbre','fleur','soleil','lune',
+  'livre','table','chaise','portes','fenetre','cuisine','salle',
+  'telephone','ordinateur','souris','clavier','ecran','imprimante',
+  'chaussures','chapeau','robe','pantalon','chemise','jupe',
+  'pomme','orange','banane','fraise','cerise','pasteque','raisin',
+  'pain','beurre','fromage','lait','eau','cafe','the',
+  'montagne','riviere','plage','desert','foret','champ','colline',
+  'oiseau','papillon','abeille','poisson','tortue','serpent','lion',
+  'avion','train','bateau','velo','autobus','motocyclette','moto',
+  'horloge','lampe','lit','couverture','oreiller','miroir','peine',
+  'couleur','numero','lettre','mot','phrase','histoire','chanson',
+  'danser','chanter','courir','sauter','nager','voler','marcher',
+  'heureux','triste','fache','peur','amour','sourire','pleurer'
 ];
 
 let wss = null;
