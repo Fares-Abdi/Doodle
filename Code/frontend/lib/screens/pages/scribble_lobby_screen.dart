@@ -168,7 +168,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
               animation: _floatingController,
               builder: (context, child) {
                 return Transform.translate(
-                  offset: Offset(0, 10 * math.sin(_floatingController.value * math.pi)),
+                  offset: Offset(0, 12 * math.sin(_floatingController.value * math.pi)),
                   child: Image.asset(
                     'assets/images/Iresmini.png',
                     width: 300,
@@ -221,7 +221,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
             ),
           ),
           
-          const SizedBox(height: 8),
+          const SizedBox(height: 0),
           FadeTransition(
             opacity: _logoController,
             child: Text(
@@ -783,21 +783,6 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
             SafeArea(
               child: Column(
                 children: [
-                  // App bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.settings_rounded, color: Colors.white),
-                          onPressed: _showServerSettingsDialog,
-                          tooltip: 'Server Settings',
-                        ),
-                      ],
-                    ),
-                  ),
-                  
                   // Scrollable content
                   Expanded(
                     child: SingleChildScrollView(
@@ -805,14 +790,10 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                         children: [
                           // Header
                           _buildHeader(),
-                          
-                          const SizedBox(height: 24),
-                          
                           // Featured card
                           _buildFeaturedCard(),
                           
                           const SizedBox(height: 24),
-                          
                           // Available rooms section
                           Container(
                             decoration: const BoxDecoration(
@@ -841,6 +822,23 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                     ),
                   ),
                 ],
+              ),
+            ),
+            
+            // Fixed App bar at top
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.settings_rounded, color: Colors.white),
+                      onPressed: _showServerSettingsDialog,
+                      tooltip: 'Server Settings',
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
