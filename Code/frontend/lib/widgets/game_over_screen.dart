@@ -42,7 +42,7 @@ class _GameOverScreenState extends State<GameOverScreen>
     _confettiController = AnimationController(
       duration: const Duration(milliseconds: 3000),
       vsync: this,
-    );
+    )..repeat();
 
     _trophyController = AnimationController(
       duration: const Duration(milliseconds: 800),

@@ -47,7 +47,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
 
     _particleController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 10),
+      duration: const Duration(seconds: 20),
     )..repeat();
 
     _particles = List.generate(20, (index) => Particle.random());
@@ -169,36 +169,23 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
               builder: (context, child) {
                 return Transform.translate(
                   offset: Offset(0, 10 * math.sin(_floatingController.value * math.pi)),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withOpacity(0.3),
-                          Colors.white.withOpacity(0.1),
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.brush,
-                      size: 60,
-                      color: Colors.white,
-                    ),
+                  child: Image.asset(
+                    'assets/images/Iresmini.png',
+                    width: 300,
+                    height: 300,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.brush,
+                        size: 60,
+                        color: Colors.white,
+                      );
+                    },
                   ),
                 );
               },
             ),
           ),
-          const SizedBox(height: 16),
-          
           // Game title with shimmer effect
           FadeTransition(
             opacity: _logoController,
