@@ -136,11 +136,8 @@ class ChatPanel extends StatelessWidget {
                 ),
               ),
               
-              // Leaderboard - compact and constrained
+              // Leaderboard - with overflow for sparkle effect to show
               Container(
-                constraints: BoxConstraints(
-                  maxHeight: screenHeight * 0.25,
-                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   border: Border(
@@ -150,9 +147,14 @@ class ChatPanel extends StatelessWidget {
                     ),
                   ),
                 ),
-                child: EnhancedLeaderboard(
-                  session: session,
-                  userId: userId,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    EnhancedLeaderboard(
+                      session: session,
+                      userId: userId,
+                    ),
+                  ],
                 ),
               ),
               

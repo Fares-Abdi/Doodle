@@ -132,6 +132,9 @@ class _GameChatState extends State<GameChat> with AudioMixin {
   }
 
   Widget _buildSystemMessage(Map<String, dynamic> message) {
+    final playerName = message['userName'] as String? ?? 'Player';
+    final guessMessage = '🎉 $playerName found the word!';
+    
     return Align(
       alignment: Alignment.center,
       child: Container(
@@ -157,7 +160,7 @@ class _GameChatState extends State<GameChat> with AudioMixin {
           ],
         ),
         child: Text(
-          message['message'] ?? '🎉 Correct guess!',
+          guessMessage,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
