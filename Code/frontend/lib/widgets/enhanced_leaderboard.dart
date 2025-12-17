@@ -83,6 +83,7 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
                 // Sparkle effect for gold medal
                 if (medalType == 'gold')
@@ -91,28 +92,31 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                       animation: _sparkleController,
                       builder: (context, child) {
                         return Stack(
+                          clipBehavior: Clip.none,
                           children: [
-                            // Animated glow effect
+                            // Animated glow effect - enhanced
                             Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
                                     color: const Color(0xFFFFD700).withOpacity(
-                                      0.3 + (sin(_sparkleController.value * pi * 2) * 0.2),
+                                      0.7 + (sin(_sparkleController.value * pi * 2) * 0.3),
                                     ),
-                                    blurRadius: 15 + (sin(_sparkleController.value * pi * 2) * 5).abs(),
-                                    spreadRadius: 2,
+                                    blurRadius: 30 + (sin(_sparkleController.value * pi * 2) * 15).abs(),
+                                    spreadRadius: 6,
+                                    offset: const Offset(0, -15),
                                   ),
                                 ],
                               ),
                             ),
-                            // Sparkle particles
+                            // Sparkle particles - enhanced
                             CustomPaint(
                               painter: SparklePainter(
                                 animation: _sparkleController,
                                 color: const Color(0xFFFFD700),
                               ),
+                              size: const Size(250, 150),
                             ),
                           ],
                         );
@@ -135,10 +139,12 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                       ),
                       if (medalType == 'gold')
                         BoxShadow(
-                          color: const Color(0xFFFFD700).withOpacity(0.3),
-                          blurRadius: 20,
+                          color: const Color(0xFFFFD700).withOpacity(
+                            0.7 + (sin(_sparkleController.value * pi * 2) * 0.3),
+                          ),
+                          blurRadius: 35 + (sin(_sparkleController.value * pi * 2) * 10).abs(),
                           offset: const Offset(0, 0),
-                          spreadRadius: -2,
+                          spreadRadius: 4,
                         ),
                     ],
                     border: Border.all(

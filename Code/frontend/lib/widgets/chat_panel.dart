@@ -181,19 +181,50 @@ class _ChatPanelState extends State<ChatPanel> {
                     });
                   },
                   child: Container(
-                    height: 24,
-                    color: Colors.grey.shade50,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Colors.deepPurple.shade700.withOpacity(_isDragging ? 0.6 : 0.3),
+                          Colors.transparent,
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 40,
-                          height: 4,
+                          width: _isDragging ? 120 : 80,
+                          height: 1.5,
                           decoration: BoxDecoration(
-                            color: _isDragging 
-                                ? Colors.deepPurple.shade400
-                                : Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(2),
+                            gradient: LinearGradient(
+                              colors: _isDragging
+                                  ? [
+                                      Colors.deepPurple.shade700,
+                                      Colors.deepPurple.shade600,
+                                      Colors.deepPurple.shade700,
+                                    ]
+                                  : [
+                                      Colors.deepPurple.shade600,
+                                      Colors.deepPurple.shade700,
+                                      Colors.deepPurple.shade600,
+                                    ],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(0.75),
+                            boxShadow: _isDragging
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.deepPurple.shade700.withOpacity(0.5),
+                                      blurRadius: 4,
+                                      spreadRadius: 0.5,
+                                    ),
+                                  ]
+                                : [],
                           ),
                         ),
                       ],
