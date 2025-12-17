@@ -145,17 +145,17 @@ class _ChatPanelState extends State<ChatPanel> {
                 ),
               ),
               
-              // Leaderboard with draggable divider
+              // Leaderboard with draggable divider (Stack allows sparkle overflow)
               SizedBox(
                 height: _getLeaderboardHeight(context),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                  ),
-                  child: EnhancedLeaderboard(
-                    session: widget.session,
-                    userId: widget.userId,
-                  ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    EnhancedLeaderboard(
+                      session: widget.session,
+                      userId: widget.userId,
+                    ),
+                  ],
                 ),
               ),
               

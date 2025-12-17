@@ -107,13 +107,24 @@ class _GameChatState extends State<GameChat> with AudioMixin {
               final message = _messages[index];
               final isCurrentUser = message['userId'] == widget.userId;
               final isCorrectGuess = message['isCorrectGuess'] ?? false;
-              final userName = message['userName'] as String? ?? 'Unknown';
+              
+              // Look up player from session to get current name (not stored name)
+              Player? playerFromSession;
+              try {
+                playerFromSession = widget.gameSession.players.firstWhere(
+                  (p) => p.id == message['userId'],
+                );
+              } catch (e) {
+                playerFromSession = null;
+              }
+              
+              final userName = playerFromSession?.name ?? (message['userName'] as String? ?? 'Unknown');
               final userColor = AvatarColorHelper.getColorFromName(userName);
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: isCorrectGuess
-                    ? _buildSystemMessage(message)
+                    ? _buildSystemMessage(message, userName)
                     : _buildChatBubble(
                         context,
                         message,
@@ -131,9 +142,8 @@ class _GameChatState extends State<GameChat> with AudioMixin {
     );
   }
 
-  Widget _buildSystemMessage(Map<String, dynamic> message) {
-    final playerName = message['userName'] as String? ?? 'Player';
-    final guessMessage = '🎉 $playerName found the word!';
+  Widget _buildSystemMessage(Map<String, dynamic> message, String userName) {
+    final guessMessage = '🎉 $userName found the word!';
     
     return Align(
       alignment: Alignment.center,
