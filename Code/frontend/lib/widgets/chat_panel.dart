@@ -23,6 +23,14 @@ class ChatPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    // Responsive width: 85% on small screens, 75% on larger
+    final panelWidth = screenWidth < 400 
+        ? screenWidth * 0.85 
+        : screenWidth * 0.75;
+
     return Positioned(
       right: 0,
       top: 0,
@@ -33,16 +41,19 @@ class ChatPanel extends StatelessWidget {
           end: Offset.zero,
         ).animate(animation),
         child: Container(
-          width: MediaQuery.of(context).size.width * 0.75,
-          constraints: const BoxConstraints(maxWidth: 400),
+          width: panelWidth,
+          constraints: BoxConstraints(
+            maxWidth: 420,
+            minWidth: 280,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: const Color(0x7B7B2D).withOpacity(0.2),
-                blurRadius: 30,
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 24,
                 spreadRadius: 0,
-                offset: const Offset(-10, 0),
+                offset: const Offset(-8, 0),
               ),
             ],
           ),
@@ -50,7 +61,7 @@ class ChatPanel extends StatelessWidget {
             children: [
               // Header with players count
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -67,49 +78,55 @@ class ChatPanel extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Players Online',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Players Online',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.4,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Game in progress',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white.withOpacity(0.8),
-                                fontWeight: FontWeight.w500,
+                              const SizedBox(height: 3),
+                              Text(
+                                'Game in progress',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white.withOpacity(0.75),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            horizontal: 10,
+                            vertical: 5,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.25),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1.5,
+                              color: Colors.white.withOpacity(0.35),
+                              width: 1,
                             ),
                           ),
                           child: Text(
-                            '${session.players.length} players',
+                            '${session.players.length}',
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
-                              letterSpacing: 0.3,
                             ),
                           ),
                         ),
@@ -119,13 +136,27 @@ class ChatPanel extends StatelessWidget {
                 ),
               ),
               
-              // Leaderboard with metallic medal podium
-              EnhancedLeaderboard(
-                session: session,
-                userId: userId,
+              // Leaderboard - compact and constrained
+              Container(
+                constraints: BoxConstraints(
+                  maxHeight: screenHeight * 0.25,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.grey.shade200,
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: EnhancedLeaderboard(
+                  session: session,
+                  userId: userId,
+                ),
               ),
               
-              // Chat section
+              // Chat section - takes remaining space
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(

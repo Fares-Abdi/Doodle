@@ -49,16 +49,12 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.35,
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          child: Column(
-            children: _buildLeaderboard(context),
-          ),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        child: Column(
+          children: _buildLeaderboard(context),
         ),
       ),
     );
@@ -85,7 +81,7 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
             curve: Curves.easeOutCubic,
           )),
           child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 8),
             child: Stack(
               children: [
                 // Sparkle effect for gold medal
