@@ -73,7 +73,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         break;
       case AppLifecycleState.resumed:
         // App is resumed (coming to foreground)
-        _audioService.resumeMusic();
+        // Don't resume here - let individual screens handle resuming their appropriate music
+        // This prevents the lobby from overriding game music
         break;
       case AppLifecycleState.detached:
         // App is about to be terminated

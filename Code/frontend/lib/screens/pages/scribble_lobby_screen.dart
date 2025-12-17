@@ -58,8 +58,16 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      // When app comes back to foreground, check if we should play lobby music
+      // Only manage lobby music if we're actually on the lobby screen
+      // Check if this screen is still in focus (simple check - if context is mounted)
+      if (!context.mounted) return;
+      
       final currentTrack = getAudioService().currentMusicTrack;
+      
+      // Don't override game music - the game screen will handle its own music
+      if (currentTrack == GameSounds.gameMusic) {
+        return;
+      }
       
       // Only play/resume if we're not already playing the lobby music
       if (currentTrack == GameSounds.lobbyMusic && getAudioService().isMusicPlaying) {

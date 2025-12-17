@@ -26,7 +26,7 @@ class GameRoomScreen extends StatefulWidget {
   State<GameRoomScreen> createState() => _GameRoomScreenState();
 }
 
-class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProviderStateMixin, AudioMixin {
+class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProviderStateMixin, AudioMixin, WidgetsBindingObserver {
   final GameService _gameService = GameService();
   late Stream<GameSession> _gameStream;
   late AnimationController _chatPanelController;
@@ -48,6 +48,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
       parent: _chatPanelController,
       curve: Curves.easeInOut,
     );
+
+    // Add observer to handle app lifecycle events
+    WidgetsBinding.instance.addObserver(this);
   }
 
   void _listenToGameState() {
@@ -79,7 +82,21 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    if (state == AppLifecycleState.resumed) {
+      // When app comes back to foreground, resume the game music immediately
+      // The main.dart already paused it, so just resume it
+      resumeBackgroundMusic();
+    }
+  }
+
+  @override
   void dispose() {
+    // Remove observer when screen is disposed
+    WidgetsBinding.instance.removeObserver(this);
+    
     // Send leave_game message to server when leaving the room
     _gameService.leaveGame(widget.gameId);
     _chatPanelController.dispose();

@@ -4,6 +4,7 @@ import 'dart:math';
 import '../models/game_session.dart';
 import '../services/game_service.dart';
 import '../utils/audio_mixin.dart';
+import '../utils/game_sounds.dart';
 import 'player_profile_editor.dart';
 
 class WaitingRoom extends StatefulWidget {
@@ -75,16 +76,19 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   }
 
   void _ensureLobbyMusicPlaying() async {
-    // Check if lobby music is already playing
+    // Only play lobby music if no music is currently playing
+    // This prevents overwriting game music that's paused/resumed during lifecycle changes
     final audioService = getAudioService();
-    if (audioService.currentMusicTrack == 'audio/music/lobby.mp3' && 
-        audioService.isMusicPlaying) {
-      // Already playing, do nothing
+    
+    // If game music is paused but still set, don't override it - let the parent handle resume
+    if (audioService.currentMusicTrack == GameSounds.gameMusic) {
       return;
     }
     
-    // Otherwise, play lobby music
-    await playBackgroundMusic('audio/music/lobby.mp3');
+    // Only play lobby music if truly no music is set
+    if (audioService.currentMusicTrack != GameSounds.lobbyMusic || !audioService.isMusicPlaying) {
+      await playBackgroundMusic(GameSounds.lobbyMusic);
+    }
   }
 
   Future<void> _loadSavedProfile() async {
