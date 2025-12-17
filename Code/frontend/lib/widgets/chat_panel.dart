@@ -268,7 +268,7 @@ class _ChatPanelState extends State<ChatPanel> {
     // Calculate available height (minus header)
     final screenHeight = MediaQuery.of(context).size.height;
     final headerHeight = 70.0; // Approximate header height
-    final dividerHeight = 24.0;
+    final dividerHeight = 150.0;
     
     final availableHeight = screenHeight - headerHeight - dividerHeight;
     return availableHeight * _leaderboardHeight;
