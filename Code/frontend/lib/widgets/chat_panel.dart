@@ -161,7 +161,7 @@ class _ChatPanelState extends State<ChatPanel> {
                 ),
               ),
               
-              // Draggable divider with clean line design
+              // Enhanced draggable divider with smooth animations
               MouseRegion(
                 cursor: SystemMouseCursors.resizeRow,
                 child: GestureDetector(
@@ -180,51 +180,62 @@ class _ChatPanelState extends State<ChatPanel> {
                       _isDragging = false;
                     });
                   },
-                  child: Container(
-                    height: 8,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: _isDragging ? 24 : 16,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          Colors.deepPurple.shade700.withOpacity(_isDragging ? 0.6 : 0.3),
+                          Colors.deepPurple.shade800.withOpacity(_isDragging ? 0.15 : 0.08),
                           Colors.transparent,
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Container(
-                          width: _isDragging ? 120 : 80,
-                          height: 1.5,
+                        // Subtle grip dots
+                        if (_isDragging)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(3, (index) => Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              child: Container(
+                                width: 3,
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple.shade300.withOpacity(0.6),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            )),
+                          ),
+                        // Main divider line
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: _isDragging ? 140 : 60,
+                          height: 2.5,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: _isDragging
-                                  ? [
-                                      Colors.deepPurple.shade700,
-                                      Colors.deepPurple.shade600,
-                                      Colors.deepPurple.shade700,
-                                    ]
-                                  : [
-                                      Colors.deepPurple.shade600,
-                                      Colors.deepPurple.shade700,
-                                      Colors.deepPurple.shade600,
-                                    ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
+                              colors: [
+                                Colors.transparent,
+                                Colors.deepPurple.shade400.withOpacity(_isDragging ? 0.9 : 0.5),
+                                Colors.deepPurple.shade600.withOpacity(_isDragging ? 1.0 : 0.6),
+                                Colors.deepPurple.shade400.withOpacity(_isDragging ? 0.9 : 0.5),
+                                Colors.transparent,
+                              ],
                             ),
-                            borderRadius: BorderRadius.circular(0.75),
-                            boxShadow: _isDragging
-                                ? [
-                                    BoxShadow(
-                                      color: Colors.deepPurple.shade700.withOpacity(0.5),
-                                      blurRadius: 4,
-                                      spreadRadius: 0.5,
-                                    ),
-                                  ]
-                                : [],
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: _isDragging ? [
+                              BoxShadow(
+                                color: Colors.deepPurple.shade400.withOpacity(0.4),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ] : [],
                           ),
                         ),
                       ],
