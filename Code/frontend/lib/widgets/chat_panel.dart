@@ -3,7 +3,7 @@ import '../models/game_session.dart';
 import 'game_chat.dart';
 import 'enhanced_leaderboard.dart';
 
-class ChatPanel extends StatelessWidget {
+class ChatPanel extends StatefulWidget {
   final bool visible;
   final Animation<double> animation;
   final GameSession session;
@@ -20,6 +20,15 @@ class ChatPanel extends StatelessWidget {
     required this.userName,
     required this.buildPlayerTile,
   }) : super(key: key);
+
+  @override
+  State<ChatPanel> createState() => _ChatPanelState();
+}
+
+class _ChatPanelState extends State<ChatPanel> {
+  double _leaderboardHeight = 0.28; // 28% of available space, can be dragged from 15% to 40%
+  late double _panelContentHeight;
+  bool _isDragging = false;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +48,7 @@ class ChatPanel extends StatelessWidget {
         position: Tween<Offset>(
           begin: const Offset(1, 0),
           end: Offset.zero,
-        ).animate(animation),
+        ).animate(widget.animation),
         child: Container(
           width: panelWidth,
           constraints: BoxConstraints(
@@ -122,7 +131,7 @@ class ChatPanel extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            '${session.players.length}',
+                            '${widget.session.players.length}',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -136,25 +145,58 @@ class ChatPanel extends StatelessWidget {
                 ),
               ),
               
-              // Leaderboard - with overflow for sparkle effect to show
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.grey.shade200,
-                      width: 0.5,
-                    ),
+              // Leaderboard with draggable divider
+              SizedBox(
+                height: _getLeaderboardHeight(context),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                  ),
+                  child: EnhancedLeaderboard(
+                    session: widget.session,
+                    userId: widget.userId,
                   ),
                 ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    EnhancedLeaderboard(
-                      session: session,
-                      userId: userId,
+              ),
+              
+              // Draggable divider with visual handle
+              MouseRegion(
+                cursor: SystemMouseCursors.resizeRow,
+                child: GestureDetector(
+                  onVerticalDragUpdate: (details) {
+                    setState(() {
+                      _isDragging = true;
+                      final totalContent = MediaQuery.of(context).size.height - 100; // Rough content height
+                      final newHeight = _leaderboardHeight + (details.delta.dy / totalContent);
+                      
+                      // Constrain between 15% and 40%
+                      _leaderboardHeight = newHeight.clamp(0.15, 0.40);
+                    });
+                  },
+                  onVerticalDragEnd: (_) {
+                    setState(() {
+                      _isDragging = false;
+                    });
+                  },
+                  child: Container(
+                    height: 24,
+                    color: Colors.grey.shade50,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: _isDragging 
+                                ? Colors.deepPurple.shade400
+                                : Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               
@@ -165,9 +207,9 @@ class ChatPanel extends StatelessWidget {
                     color: Colors.white,
                   ),
                   child: GameChat(
-                    gameSession: session,
-                    userId: userId,
-                    userName: userName,
+                    gameSession: widget.session,
+                    userId: widget.userId,
+                    userName: widget.userName,
                   ),
                 ),
               ),
@@ -176,5 +218,15 @@ class ChatPanel extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  double _getLeaderboardHeight(BuildContext context) {
+    // Calculate available height (minus header)
+    final screenHeight = MediaQuery.of(context).size.height;
+    final headerHeight = 70.0; // Approximate header height
+    final dividerHeight = 24.0;
+    
+    final availableHeight = screenHeight - headerHeight - dividerHeight;
+    return availableHeight * _leaderboardHeight;
   }
 }
