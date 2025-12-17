@@ -26,7 +26,7 @@ class ChatPanel extends StatefulWidget {
 }
 
 class _ChatPanelState extends State<ChatPanel> {
-  double _leaderboardHeight = 0.28; // 28% of available space, can be dragged from 15% to 40%
+  double _leaderboardHeight = 0.38; // 38% by default - shows full gold medal position
   late double _panelContentHeight;
   bool _isDragging = false;
 
@@ -55,6 +55,7 @@ class _ChatPanelState extends State<ChatPanel> {
             maxWidth: 420,
             minWidth: 280,
           ),
+          clipBehavior: Clip.none,
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
@@ -145,9 +146,10 @@ class _ChatPanelState extends State<ChatPanel> {
                 ),
               ),
               
-              // Leaderboard with draggable divider (Stack allows sparkle overflow)
-              SizedBox(
+              // Leaderboard with sparkle overflow effect
+              Container(
                 height: _getLeaderboardHeight(context),
+                clipBehavior: Clip.none,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -159,14 +161,14 @@ class _ChatPanelState extends State<ChatPanel> {
                 ),
               ),
               
-              // Draggable divider with visual handle
+              // Draggable divider with clean line design
               MouseRegion(
                 cursor: SystemMouseCursors.resizeRow,
                 child: GestureDetector(
                   onVerticalDragUpdate: (details) {
                     setState(() {
                       _isDragging = true;
-                      final totalContent = MediaQuery.of(context).size.height - 100; // Rough content height
+                      final totalContent = MediaQuery.of(context).size.height - 100;
                       final newHeight = _leaderboardHeight + (details.delta.dy / totalContent);
                       
                       // Constrain between 15% and 40%
