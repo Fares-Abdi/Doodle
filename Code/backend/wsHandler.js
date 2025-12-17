@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
 const { log } = require('./utils');
 const gm = require('./gameManager');
+const playerProfiles = require('./playerProfiles');
 
 const wss = new WebSocket.Server({ port: 8080 });
 gm.setWss(wss);
@@ -31,12 +32,23 @@ wss.on('connection', (ws) => {
             cleanupTimer: null,
           };
           game.players = game.players || [];
+          
+          // Merge saved profiles into players
+          game.players = game.players.map(player => {
+            const savedProfile = playerProfiles.getOrCreatePlayerProfile(player.id, player.name);
+            return {
+              ...player,
+              name: savedProfile.name,
+              photoURL: savedProfile.photoURL,
+            };
+          });
+          
           gm.games.set(gameId, game);
           gm.clientToGame.set(ws, gameId);
           if (payload.players && payload.players[0] && payload.players[0].id) {
             gm.clientToPlayerId.set(ws, payload.players[0].id);
           }
-          log('game', `Game ${gameId} created by ${payload.players?.[0]?.name || 'unknown'}`);
+          log('game', `Game ${gameId} created by ${game.players?.[0]?.name || 'unknown'}`);
           gm.broadcast(gameId, { type: 'game_update', gameId, payload: gm.games.get(gameId) });
           break;
         }
@@ -45,8 +57,15 @@ wss.on('connection', (ws) => {
           if (gm.games.has(gameId)) {
             const game = gm.games.get(gameId);
             if (!game.players.some(p => p.id === payload.player.id)) {
-              game.players.push(payload.player);
-              log('game', `${payload.player.name} joined game ${gameId}`);
+              // Load saved profile for the joining player
+              const savedProfile = playerProfiles.getOrCreatePlayerProfile(payload.player.id, payload.player.name);
+              const playerWithProfile = {
+                ...payload.player,
+                name: savedProfile.name,
+                photoURL: savedProfile.photoURL,
+              };
+              game.players.push(playerWithProfile);
+              log('game', `${playerWithProfile.name} joined game ${gameId}`);
               if (game.players.length === 3) {
                 game.maxRounds = 3;
                 log('game', `Game ${gameId} is now full (3 players)`);
@@ -221,8 +240,30 @@ wss.on('connection', (ws) => {
             if (playerIndex !== -1) {
               game.players[playerIndex].name = name;
               game.players[playerIndex].photoURL = photoURL;
+              // Save the profile to persistent storage
+              playerProfiles.updatePlayerProfile(playerId, name, photoURL);
               log('game', `Player ${playerId} updated: name=${name}, avatar=${photoURL}`);
               gm.broadcast(gameId, { type: 'game_update', gameId, payload: game });
+            }
+          }
+          break;
+        }
+
+        case 'destroy_room': {
+          if (gm.games.has(gameId)) {
+            const game = gm.games.get(gameId);
+            // Only allow creator to destroy the room, or allow if no players
+            const playerId = gm.clientToPlayerId.get(ws);
+            const isCreator = game.players.some(p => p.id === playerId && p.isCreator);
+            
+            if (isCreator || game.players.length === 0) {
+              log('game', `Room ${gameId} destroyed by creator`);
+              // Mark for immediate cleanup
+              game.state = 'GameState.aborted';
+              gm.broadcast(gameId, { type: 'game_destroyed', gameId });
+              gm.cleanupGame(gameId);
+            } else {
+              log('error', `Unauthorized room destruction attempt for game ${gameId}`);
             }
           }
           break;

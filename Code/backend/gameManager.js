@@ -37,30 +37,60 @@ function setWss(server) {
   startEmptyGameCheck();
 }
 
-// Check every 1 second for games with no players and delete them
+// Check every 10 seconds for games that should be cleaned up
+// Games in waiting state with no players will be marked and deleted after timeout
 function startEmptyGameCheck() {
+  const emptyGameTimestamps = new Map(); // Track when games became empty
+  const EMPTY_GAME_TIMEOUT = 300000; // 5 minutes before auto-cleanup
+  
   setInterval(() => {
     const gamesToDelete = [];
+    const now = Date.now();
+    
     for (const [gameId, game] of games.entries()) {
-      // Check if game has no players (regardless of state)
+      // Check if game has no players
       if (!game.players || game.players.length === 0) {
-        // If in waiting state, immediately delete
+        // If in waiting state, don't immediately delete - just mark the timestamp
         if (game.state === 'GameState.waiting') {
-          log('game', `Deleting empty game ${gameId} from waiting state`);
+          if (!emptyGameTimestamps.has(gameId)) {
+            emptyGameTimestamps.set(gameId, now);
+            log('game', `Game ${gameId} is now empty (waiting state) - will delete after ${EMPTY_GAME_TIMEOUT/1000}s`);
+          } else {
+            // Check if enough time has passed
+            const emptyDuration = now - emptyGameTimestamps.get(gameId);
+            if (emptyDuration > EMPTY_GAME_TIMEOUT) {
+              log('game', `Deleting empty game ${gameId} after timeout`);
+              gamesToDelete.push(gameId);
+            }
+          }
+        }
+        // If in gameOver state, cleanup immediately
+        else if (game.state === 'GameState.gameOver') {
+          log('game', `Cleaning up game ${gameId} in gameOver state`);
           gamesToDelete.push(gameId);
         }
-        // If in other states, abort and cleanup
+        // For other states, abort and cleanup
         else if (game.state !== 'GameState.aborted') {
           log('game', `Aborting empty game ${gameId} (state: ${game.state})`);
           game.state = 'GameState.aborted';
           broadcast(gameId, { type: 'game_update', gameId, payload: game });
           gamesToDelete.push(gameId);
         }
+      } else {
+        // Game has players again, clear the timestamp
+        if (emptyGameTimestamps.has(gameId)) {
+          emptyGameTimestamps.delete(gameId);
+          log('game', `Game ${gameId} is no longer empty - reset cleanup timer`);
+        }
       }
     }
+    
     // Clean up all marked games
-    gamesToDelete.forEach(gameId => cleanupGame(gameId));
-  }, 1000);  // Check every 1 second for faster detection
+    gamesToDelete.forEach(gameId => {
+      cleanupGame(gameId);
+      emptyGameTimestamps.delete(gameId);
+    });
+  }, 10000);  // Check every 10 seconds
 }
 
 function cleanGameDataForBroadcast(game) {
@@ -235,14 +265,26 @@ function cleanupGame(gameId) {
   clearTimeout(game.prepTimer);
   clearTimeout(game.cleanupTimer);
 
-  for (const [client, gid] of clientToGame.entries()) {
-    if (gid === gameId) {
-      clientToGame.delete(client);
-      clientToPlayerId.delete(client);
-      try {
-        if (client && client.readyState === WebSocket.OPEN) client.close();
-      } catch (e) {
-        // ignore
+  // Only close connections if game was in an active state (not waiting room)
+  // This prevents disconnecting everyone when the waiting room is empty
+  if (game.state !== 'GameState.waiting') {
+    for (const [client, gid] of clientToGame.entries()) {
+      if (gid === gameId) {
+        clientToGame.delete(client);
+        clientToPlayerId.delete(client);
+        try {
+          if (client && client.readyState === WebSocket.OPEN) client.close();
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+  } else {
+    // For waiting room games, just clear the mappings without closing connections
+    for (const [client, gid] of clientToGame.entries()) {
+      if (gid === gameId) {
+        clientToGame.delete(client);
+        clientToPlayerId.delete(client);
       }
     }
   }

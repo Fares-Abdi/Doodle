@@ -588,12 +588,30 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   }
 
   void _showExitConfirmation() {
+    final isCreator = widget.session.players
+        .firstWhere((p) => p.id == widget.userId, orElse: () => Player(id: widget.userId, name: 'Player'))
+        .isCreator;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Exit Game?'),
-          content: const Text('Are you sure you want to leave the game?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Are you sure you want to leave the game?'),
+              if (isCreator)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: Text(
+                    'As the creator, you can also destroy the room for everyone.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -603,11 +621,19 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
               onPressed: () {
                 Navigator.of(context).pop();
                 _gameService.leaveGame(widget.session.id);
-                // Music will be handled by the parent screen
                 widget.onBack();
               },
-              child: const Text('Exit', style: TextStyle(color: Colors.red)),
+              child: const Text('Leave', style: TextStyle(color: Colors.orange)),
             ),
+            if (isCreator)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _gameService.destroyRoom(widget.session.id);
+                  widget.onBack();
+                },
+                child: const Text('Destroy Room', style: TextStyle(color: Colors.red)),
+              ),
           ],
         );
       },
