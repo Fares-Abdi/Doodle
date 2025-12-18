@@ -161,20 +161,22 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
         _dividerExpandController.reset();
         _dividerExpandController.forward().then((_) {
           // Sync _leaderboardHeight after animation completes
-          setState(() {
-            _leaderboardHeight = 0.0;
-          });
+          if (mounted) {
+            setState(() {
+              _leaderboardHeight = 0.0;
+            });
+          }
         });
       } else {
         // When keyboard closes, animate back to stored position
-        setState(() {
-          _targetLeaderboardHeight = _heightBeforeKeyboard;
-        });
+        // Don't change _leaderboardHeight here, let the animation handle it
         _dividerExpandController.reverse().then((_) {
-          // After animation completes, sync _leaderboardHeight with target
-          setState(() {
-            _leaderboardHeight = _targetLeaderboardHeight;
-          });
+          // After animation completes, ensure final position is set
+          if (mounted) {
+            setState(() {
+              _leaderboardHeight = _heightBeforeKeyboard;
+            });
+          }
         });
       }
     }
@@ -187,10 +189,24 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
     final headerHeight = 130.0;
     final dividerHeight = 28.0;
     
-    // Always use interpolation during animation, direct value when not animating
-    final height = _isDragging || (!_dividerExpandController.isAnimating)
-        ? _leaderboardHeight 
-        : (lerpDouble(_heightBeforeKeyboard, _targetLeaderboardHeight, _dividerExpandAnimation.value) ?? _leaderboardHeight);
+    double height;
+    
+    if (_isDragging || !_dividerExpandController.isAnimating) {
+      // When dragging or not animating, use direct value
+      height = _leaderboardHeight;
+    } else {
+      // During animation, interpolate correctly based on direction
+      // When forward (keyboard opening): animate from _heightBeforeKeyboard to 0
+      // When reverse (keyboard closing): animate from 0 to _heightBeforeKeyboard
+      if (_dividerExpandController.status == AnimationStatus.forward) {
+        // Going up (0 -> 1): from _heightBeforeKeyboard to 0
+        height = lerpDouble(_heightBeforeKeyboard, _targetLeaderboardHeight, _dividerExpandAnimation.value) ?? _leaderboardHeight;
+      } else {
+        // Going down (1 -> 0): from 0 to _heightBeforeKeyboard
+        // We need to invert because reverse goes from 1 to 0, but we want to go from 0 to target
+        height = lerpDouble(0.0, _heightBeforeKeyboard, 1.0 - _dividerExpandAnimation.value) ?? _leaderboardHeight;
+      }
+    }
     
     final availableHeight = screenHeight - headerHeight - dividerHeight;
     return availableHeight * height;
