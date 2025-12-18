@@ -9,6 +9,7 @@ import '../../widgets/round_transition.dart';
 import '../../widgets/game_over_screen.dart';
 import '../../widgets/game_board.dart';
 import '../../widgets/enhanced_leaderboard.dart';
+import '../../widgets/game_room/chat_panel.dart';
 
 class GameRoomScreen extends StatefulWidget {
   final String gameId;
@@ -586,226 +587,16 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
                   begin: const Offset(1, 0),
                   end: Offset.zero,
                 ).animate(_chatPanelAnimation),
-                child: Container(
-                  width: 350,
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      // Header with players count
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.deepPurple.shade500,
-                              Colors.deepPurple.shade700,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Colors.deepPurple.shade900.withOpacity(0.4),
-                              width: 1,
-                            ),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.deepPurple.shade900.withOpacity(0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Players Online',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                          letterSpacing: 0.4,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        'Game in progress',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.white.withOpacity(0.75),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.25),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.35),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '${_currentGameSession.players.length}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Leaderboard
-                      Container(
-                        height: _getLeaderboardHeight(context),
-                        clipBehavior: Clip.none,
-                        child: EnhancedLeaderboard(
-                          session: _currentGameSession,
-                          userId: widget.userId,
-                        ),
-                      ),
-                      
-                      // Divider with drag functionality
-                      _buildEnhancedDivider(),
-                      
-                      // Chat messages area (Expanded)
-                      Expanded(
-                        child: Container(
-                          color: Colors.grey.shade100,
-                          child: _messages.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    'Chat messages\n(Drag divider)',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  controller: _scrollController,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                                  itemCount: _messages.length,
-                                  itemBuilder: (context, index) {
-                                    final message = _messages[index];
-                                    final isCurrentUser = message['userId'] == widget.userId;
-                                    return _buildChatBubble(message, isCurrentUser);
-                                  },
-                                ),
-                        ),
-                      ),
-                      
-                      // Message input - fixed at bottom of panel (not movable by divider)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border(
-                            top: BorderSide(
-                              color: Colors.grey.shade300,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        padding: EdgeInsets.only(
-                          left: 12,
-                          right: 12,
-                          top: 8,
-                          bottom: 8 + (MediaQuery.of(context).viewInsets.bottom == 0 ? _lastViewInsetsBottom : 0),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _chatMessageController,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 14,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'Type a message...',
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: const BorderSide(
-                                      color: Colors.deepPurple,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.deepPurple.shade500,
-                                    Colors.deepPurple.shade600,
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                onPressed: () {
-                                  if (_chatMessageController.text.isNotEmpty) {
-                                    _handleMessageSend(_chatMessageController.text);
-                                  }
-                                },
-                                icon: const Icon(Icons.send, color: Colors.white),
-                                iconSize: 20,
-                                padding: const EdgeInsets.all(8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                child: ChatPanel(
+                  session: _currentGameSession,
+                  userId: widget.userId,
+                  messages: _messages,
+                  scrollController: _scrollController,
+                  chatController: _chatMessageController,
+                  onSend: (msg) => _handleMessageSend(msg),
+                  playerCount: _currentGameSession.players.length,
+                  leaderboardHeight: _getLeaderboardHeight(context),
+                  dividerWidget: _buildEnhancedDivider(),
                 ),
               ),
             ),
