@@ -153,13 +153,29 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
     
     if (!_isDragging && keyboardVisible != keyboardWasVisible) {
       if (keyboardVisible) {
-        _heightBeforeKeyboard = _leaderboardHeight;
-        _targetLeaderboardHeight = 0.0;
+        // Store current position before animating up
+        setState(() {
+          _heightBeforeKeyboard = _leaderboardHeight;
+          _targetLeaderboardHeight = 0.0;
+        });
         _dividerExpandController.reset();
-        _dividerExpandController.forward();
+        _dividerExpandController.forward().then((_) {
+          // Sync _leaderboardHeight after animation completes
+          setState(() {
+            _leaderboardHeight = 0.0;
+          });
+        });
       } else {
-        _targetLeaderboardHeight = _heightBeforeKeyboard;
-        _dividerExpandController.reverse();
+        // When keyboard closes, animate back to stored position
+        setState(() {
+          _targetLeaderboardHeight = _heightBeforeKeyboard;
+        });
+        _dividerExpandController.reverse().then((_) {
+          // After animation completes, sync _leaderboardHeight with target
+          setState(() {
+            _leaderboardHeight = _targetLeaderboardHeight;
+          });
+        });
       }
     }
     
@@ -171,8 +187,10 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
     final headerHeight = 130.0;
     final dividerHeight = 28.0;
     
-    // When dragging, use _leaderboardHeight directly. Otherwise use animation interpolation
-    final height = _isDragging ? _leaderboardHeight : (lerpDouble(_heightBeforeKeyboard, _targetLeaderboardHeight, _dividerExpandAnimation.value) ?? _leaderboardHeight);
+    // Always use interpolation during animation, direct value when not animating
+    final height = _isDragging || (!_dividerExpandController.isAnimating)
+        ? _leaderboardHeight 
+        : (lerpDouble(_heightBeforeKeyboard, _targetLeaderboardHeight, _dividerExpandAnimation.value) ?? _leaderboardHeight);
     
     final availableHeight = screenHeight - headerHeight - dividerHeight;
     return availableHeight * height;
@@ -191,7 +209,13 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
       },
       child: GestureDetector(
         onVerticalDragStart: (_) {
-          setState(() => _isDragging = true);
+          setState(() {
+            _isDragging = true;
+            // Stop any ongoing animation and sync heights
+            _dividerExpandController.stop();
+            _leaderboardHeight = _targetLeaderboardHeight;
+            _heightBeforeKeyboard = _leaderboardHeight;
+          });
           _dragController.forward();
         },
         onVerticalDragUpdate: (details) {
@@ -200,6 +224,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
             final newHeight = _leaderboardHeight + (details.delta.dy / totalContent);
             _leaderboardHeight = newHeight.clamp(0.0, 0.95);
             _targetLeaderboardHeight = _leaderboardHeight;
+            _heightBeforeKeyboard = _leaderboardHeight; // Keep this synced
             final percentage = (_leaderboardHeight * 100).toStringAsFixed(1);
             print('📊 [GAME] Divider dragging: $percentage%');
           });
