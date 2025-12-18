@@ -9,7 +9,7 @@ class GameSounds {
   // Game Events - Sound Effects
   static const String gameStart = 'audio/sfx/game_start.m4a';
   static const String foundWord = 'audio/sfx/found_word.m4a';
-  static const String falseGuess = 'audio/sfx/false_guess.m4a';
+  static const String falseGuess = 'audio/sfx/false guesse.m4a';
   static const String roundEnd = 'audio/sfx/round_end.m4a';
   static const String playerJoined = 'audio/sfx/player_joined.m4a';
   static const String joinGame = 'audio/sfx/join_game.m4a';

@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
+import '../../models/game_session.dart';
+import '../../utils/avatar_color_helper.dart';
 
 class ChatBubble extends StatelessWidget {
   final Map<String, dynamic> message;
   final bool isCurrentUser;
+  final GameSession session;
 
-  const ChatBubble({Key? key, required this.message, required this.isCurrentUser}) : super(key: key);
+  const ChatBubble({Key? key, required this.message, required this.isCurrentUser, required this.session}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final messageText = message['message'] as String? ?? '';
-    final userName = message['userName'] as String? ?? 'Unknown';
+    final userId = message['userId'] as String? ?? '';
     final isCorrectGuess = message['isCorrectGuess'] ?? false;
+
+    // Look up actual player data from session
+    final player = session.players.firstWhere(
+      (p) => p.id == userId,
+      orElse: () => Player(id: userId, name: message['userName'] as String? ?? 'Unknown'),
+    );
+    final userName = player.name;
 
     if (isCorrectGuess) {
       return Align(
@@ -38,42 +48,109 @@ class ChatBubble extends StatelessWidget {
 
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: isCurrentUser
-              ? LinearGradient(
-                  colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade500],
-                )
-              : null,
-          color: !isCurrentUser ? Colors.grey.shade100 : null,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: isCurrentUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              userName,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-                color: isCurrentUser ? Colors.white.withOpacity(0.9) : Colors.grey.shade700,
+            // Avatar for other users (left side)
+            if (!isCurrentUser)
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: _buildAvatar(),
+              ),
+            
+            // Message bubble
+            Flexible(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: isCurrentUser
+                      ? LinearGradient(
+                          colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade500],
+                        )
+                      : null,
+                  color: !isCurrentUser ? Colors.grey.shade100 : null,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      userName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: isCurrentUser ? Colors.white.withOpacity(0.9) : Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      messageText,
+                      style: TextStyle(
+                        color: isCurrentUser ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                      maxLines: 5,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              messageText,
-              style: TextStyle(
-                color: isCurrentUser ? Colors.white : Colors.black87,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
+
+            // Avatar for current user (right side)
+            if (isCurrentUser)
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: _buildAvatar(),
               ),
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
-            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    final userId = message['userId'] as String? ?? '';
+    
+    // Look up actual player data from session
+    final player = session.players.firstWhere(
+      (p) => p.id == userId,
+      orElse: () => Player(id: userId, name: message['userName'] as String? ?? 'Unknown'),
+    );
+    final playerName = player.name;
+    
+    // Use the player's actual photoURL color (e.g., 'red', 'blue', 'purple')
+    final avatarColorName = player.photoURL ?? 'blue';
+    final avatarColor = AvatarColorHelper.getColorFromName(avatarColorName);
+    
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: avatarColor,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isCurrentUser 
+            ? Colors.deepPurple.shade400 
+            : Colors.grey.shade300,
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          playerName.isNotEmpty ? playerName[0].toUpperCase() : '?',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
         ),
       ),
     );

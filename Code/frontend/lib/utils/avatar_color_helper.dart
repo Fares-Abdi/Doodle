@@ -37,4 +37,12 @@ class AvatarColorHelper {
     }
     return 'blue';
   }
+
+  static Color getColorForId(String id) {
+    if (id.isEmpty) return Colors.blue;
+    // Hash the ID to a consistent color
+    final hashCode = id.hashCode.abs();
+    final index = hashCode % avatarColors.length;
+    return avatarColors[index];
+  }
 }

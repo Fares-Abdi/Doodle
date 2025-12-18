@@ -55,7 +55,7 @@ class ChatPanel extends StatelessWidget {
           Expanded(
             child: Container(
               color: Colors.grey.shade100,
-              child: ChatMessagesList(messages: messages, controller: scrollController, userId: userId),
+              child: ChatMessagesList(messages: messages, controller: scrollController, userId: userId, session: session),
             ),
           ),
 

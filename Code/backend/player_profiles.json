@@ -36,16 +36,16 @@
   },
   "a686fbb6-269b-47de-9f60-77c98bfdfdd5": {
     "id": "a686fbb6-269b-47de-9f60-77c98bfdfdd5",
-    "name": "Player a686",
-    "photoURL": "blue",
+    "name": "Play",
+    "photoURL": "green",
     "createdAt": "2025-12-17T19:57:48.034Z",
-    "lastUpdated": "2025-12-17T19:57:48.034Z"
+    "lastUpdated": "2025-12-18T23:15:32.767Z"
   },
   "63bb176b-0a27-4583-9fe1-d3fa8bda5864": {
     "id": "63bb176b-0a27-4583-9fe1-d3fa8bda5864",
-    "name": "Player 63bb",
+    "name": "farrs",
     "photoURL": "blue",
     "createdAt": "2025-12-18T17:55:29.640Z",
-    "lastUpdated": "2025-12-18T17:55:29.640Z"
+    "lastUpdated": "2025-12-18T23:15:18.293Z"
   }
 }

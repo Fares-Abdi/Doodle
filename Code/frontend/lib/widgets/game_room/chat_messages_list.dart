@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../models/game_session.dart';
 import 'chat_bubble.dart';
 
 class ChatMessagesList extends StatelessWidget {
   final List<Map<String, dynamic>> messages;
   final ScrollController controller;
   final String userId;
+  final GameSession session;
 
-  const ChatMessagesList({Key? key, required this.messages, required this.controller, required this.userId}) : super(key: key);
+  const ChatMessagesList({Key? key, required this.messages, required this.controller, required this.userId, required this.session}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,7 @@ class ChatMessagesList extends StatelessWidget {
       itemBuilder: (context, index) {
         final message = messages[index];
         final isCurrentUser = message['userId'] == userId;
-        return ChatBubble(message: message, isCurrentUser: isCurrentUser);
+        return ChatBubble(message: message, isCurrentUser: isCurrentUser, session: session);
       },
     );
   }
