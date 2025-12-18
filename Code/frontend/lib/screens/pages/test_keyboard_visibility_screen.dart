@@ -97,13 +97,13 @@ class _TestKeyboardVisibilityScreenState extends State<TestKeyboardVisibilityScr
       setState(() {
         if (keyboardVisible) {
           _heightBeforeKeyboard = _leaderboardHeight;
-          _leaderboardHeight = 0.46;
+          _leaderboardHeight = 0.0;
           _dividerExpandController.forward();
-          print('⌨️ [TEST] Keyboard visible - setting height to 46%');
+          print('⌨️ [TEST] Keyboard visible - setting height to 0%');
         } else {
-          _leaderboardHeight = 1.0;
+          _leaderboardHeight = _heightBeforeKeyboard;
           _dividerExpandController.reverse();
-          print('🚫 [TEST] Keyboard hidden - setting height to 100%');
+          print('🚫 [TEST] Keyboard hidden - restoring height to $_heightBeforeKeyboard');
         }
       });
     }
@@ -426,104 +426,104 @@ class _TestKeyboardVisibilityScreenState extends State<TestKeyboardVisibilityScr
                       // Divider
                       _buildEnhancedDivider(),
                       
-                      // Chat area
+                      // Chat messages area (Expanded)
                       Expanded(
                         child: Container(
                           color: Colors.grey.shade100,
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: Center(
-                                  child: Text(
-                                    'Chat messages\n(Drag divider)',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 14,
+                          child: Center(
+                            child: Text(
+                              'Chat messages\n(Drag divider)',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      // Message input - fixed at bottom of panel (not movable by divider)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border(
+                            top: BorderSide(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        padding: EdgeInsets.only(
+                          left: 12,
+                          right: 12,
+                          top: 8,
+                          bottom: 8 + (MediaQuery.of(context).viewInsets.bottom == 0 ? _lastViewInsetsBottom : 0),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _chatController,
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 14,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Type a message...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
                                     ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: const BorderSide(
+                                      color: Colors.deepPurple,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
                                   ),
                                 ),
                               ),
-                              // Message input at bottom
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  border: Border(
-                                    top: BorderSide(
-                                      color: Colors.grey.shade300,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _chatController,
-                                        style: const TextStyle(
-                                          color: Colors.black87,
-                                          fontSize: 14,
-                                        ),
-                                        decoration: InputDecoration(
-                                          hintText: 'Type a message...',
-                                          hintStyle: TextStyle(
-                                            color: Colors.grey.shade400,
-                                          ),
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(20),
-                                            borderSide: BorderSide(
-                                              color: Colors.grey.shade300,
-                                            ),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(20),
-                                            borderSide: BorderSide(
-                                              color: Colors.grey.shade300,
-                                            ),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(20),
-                                            borderSide: const BorderSide(
-                                              color: Colors.deepPurple,
-                                              width: 2,
-                                            ),
-                                          ),
-                                          contentPadding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 10,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.deepPurple.shade500,
-                                            Colors.deepPurple.shade600,
-                                          ],
-                                        ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: IconButton(
-                                        onPressed: () {
-                                          if (_chatController.text.isNotEmpty) {
-                                            debugPrint('[TEST] Message sent: ${_chatController.text}');
-                                            _chatController.clear();
-                                          }
-                                        },
-                                        icon: const Icon(Icons.send, color: Colors.white),
-                                        iconSize: 20,
-                                        padding: const EdgeInsets.all(8),
-                                      ),
-                                    ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.deepPurple.shade500,
+                                    Colors.deepPurple.shade600,
                                   ],
                                 ),
+                                shape: BoxShape.circle,
                               ),
-                            ],
-                          ),
+                              child: IconButton(
+                                onPressed: () {
+                                  if (_chatController.text.isNotEmpty) {
+                                    debugPrint('[TEST] Message sent: ${_chatController.text}');
+                                    _chatController.clear();
+                                  }
+                                },
+                                icon: const Icon(Icons.send, color: Colors.white),
+                                iconSize: 20,
+                                padding: const EdgeInsets.all(8),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
