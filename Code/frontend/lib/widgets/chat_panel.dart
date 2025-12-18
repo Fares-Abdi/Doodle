@@ -25,10 +25,27 @@ class ChatPanel extends StatefulWidget {
   State<ChatPanel> createState() => _ChatPanelState();
 }
 
-class _ChatPanelState extends State<ChatPanel> {
+class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
   double _leaderboardHeight = 0.38; // 38% by default - shows full gold medal position
   late double _panelContentHeight;
   bool _isDragging = false;
+  bool _isHoveringDivider = false;
+  late AnimationController _dragController;
+
+  @override
+  void initState() {
+    super.initState();
+    _dragController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _dragController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -183,66 +200,10 @@ class _ChatPanelState extends State<ChatPanel> {
               ),
               
               // Enhanced draggable divider
-              MouseRegion(
-                cursor: SystemMouseCursors.resizeRow,
-                child: GestureDetector(
-                  onVerticalDragUpdate: (details) {
-                    setState(() {
-                      _isDragging = true;
-                      final totalContent = MediaQuery.of(context).size.height - 100;
-                      final newHeight = _leaderboardHeight + (details.delta.dy / totalContent);
-                      
-                      // Constrain between 15% and 40%
-                      _leaderboardHeight = newHeight.clamp(0.15, 0.40);
-                    });
-                  },
-                  onVerticalDragEnd: (_) {
-                    setState(() {
-                      _isDragging = false;
-                    });
-                  },
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: Colors.deepPurple.shade300.withOpacity(0.4),
-                          width: 1,
-                        ),
-                        bottom: BorderSide(
-                          color: Colors.deepPurple.shade400.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    child: Center(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: _isDragging ? 120 : 50,
-                        height: 2.5,
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple.shade500.withOpacity(_isDragging ? 0.9 : 0.6),
-                          borderRadius: BorderRadius.circular(1.5),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              _buildEnhancedDivider(),
               
               // Chat section - takes remaining space
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                  ),
-                  child: GameChat(
-                    gameSession: widget.session,
-                    userId: widget.userId,
-                    userName: widget.userName,
-                  ),
-                ),
-              ),
+              _buildChatSection(),
             ],
           ),
         ),
@@ -251,12 +212,105 @@ class _ChatPanelState extends State<ChatPanel> {
   }
 
   double _getLeaderboardHeight(BuildContext context) {
-    // Calculate available height (minus header)
     final screenHeight = MediaQuery.of(context).size.height;
-    final headerHeight = 130.0; // Approximate header height
-    final dividerHeight = 5.0;
+    final headerHeight = 130.0;
+    final dividerHeight = 28.0;
     
     final availableHeight = screenHeight - headerHeight - dividerHeight;
     return availableHeight * _leaderboardHeight;
+  }
+
+  Widget _buildEnhancedDivider() {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeRow,
+      onEnter: (_) {
+        setState(() => _isHoveringDivider = true);
+        _dragController.forward();
+      },
+      onExit: (_) {
+        setState(() => _isHoveringDivider = false);
+        if (!_isDragging) _dragController.reverse();
+      },
+      child: GestureDetector(
+        onVerticalDragStart: (_) {
+          setState(() => _isDragging = true);
+          _dragController.forward();
+        },
+        onVerticalDragUpdate: (details) {
+          setState(() {
+            final totalContent = MediaQuery.of(context).size.height - 100;
+            final newHeight = _leaderboardHeight + (details.delta.dy / totalContent);
+            _leaderboardHeight = newHeight.clamp(0.15, 0.45);
+          });
+        },
+        onVerticalDragEnd: (_) {
+          setState(() => _isDragging = false);
+          if (!_isHoveringDivider) _dragController.reverse();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 12,
+          decoration: BoxDecoration(
+            color: _isDragging || _isHoveringDivider
+                ? const Color.fromARGB(255, 102, 0, 255).withOpacity(0.4)
+                : const Color.fromARGB(255, 102, 0, 255).withOpacity(0.25),
+            border: Border(
+              top: BorderSide(
+                color: _isDragging || _isHoveringDivider
+                    ? Colors.deepPurple.shade400.withOpacity(0.4)
+                    : Colors.deepPurple.shade300.withOpacity(0.3),
+                width: 1,
+              ),
+              bottom: BorderSide(
+                color: _isDragging || _isHoveringDivider
+                    ? Colors.deepPurple.shade400.withOpacity(0.3)
+                    : Colors.deepPurple.shade200.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _dragController,
+              builder: (context, child) {
+                final animValue = Curves.easeOut.transform(_dragController.value);
+                return Container(
+                  width: 40 + (80 * animValue),
+                  height: 4,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        (_isDragging || _isHoveringDivider
+                            ? const Color(0xFF6366F1)
+                            : Colors.deepPurple.shade500).withOpacity(0.7),
+                        (_isDragging || _isHoveringDivider
+                            ? const Color(0xFF8B5CF6)
+                            : Colors.deepPurple.shade600).withOpacity(0.6),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatSection() {
+    return Expanded(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+        ),
+        child: GameChat(
+          gameSession: widget.session,
+          userId: widget.userId,
+          userName: widget.userName,
+        ),
+      ),
+    );
   }
 }
