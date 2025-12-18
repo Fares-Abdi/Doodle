@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/game_session.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:math' as math;
-import 'test_keyboard_visibility_screen.dart';
+
 
 class ScribbleLobbyScreen extends StatefulWidget {
   @override
@@ -841,18 +841,6 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.science_rounded, color: Colors.white),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TestKeyboardVisibilityScreen(),
-                          ),
-                        );
-                      },
-                      tooltip: 'Test Keyboard Visibility',
-                    ),
                     const SizedBox(width: 4),
                     IconButton(
                       icon: const Icon(Icons.settings_rounded, color: Colors.white),

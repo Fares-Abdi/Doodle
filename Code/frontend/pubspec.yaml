@@ -58,3 +58,4 @@ flutter:
     - assets/images/img2.png
     - assets/config.json
     - assets/audio/music/
+    - assets/audio/sfx/

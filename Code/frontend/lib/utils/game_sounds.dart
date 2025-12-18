@@ -7,12 +7,12 @@ class GameSounds {
   static const String roundTransitionMusic = 'audio/music/next_round.m4a';
 
   // Game Events - Sound Effects
-  static const String gameStart = 'audio/music/game_start.m4a';
-  static const String foundWord = 'audio/music/found_word.m4a';
-  static const String falseGuess = 'audio/music/false guesse.m4a';
-  static const String roundEnd = 'audio/music/round_end.m4a';
-  static const String playerJoined = 'audio/music/player_joined.m4a';
-  static const String joinGame = 'audio/music/join_game.m4a';
+  static const String gameStart = 'audio/sfx/game_start.m4a';
+  static const String foundWord = 'audio/sfx/found_word.m4a';
+  static const String falseGuess = 'audio/sfx/false_guess.m4a';
+  static const String roundEnd = 'audio/sfx/round_end.m4a';
+  static const String playerJoined = 'audio/sfx/player_joined.m4a';
+  static const String joinGame = 'audio/sfx/join_game.m4a';
   
   // Aliases for consistency
   static const String buttonClick = joinGame;
