@@ -26,25 +26,75 @@ class ChatPanel extends StatefulWidget {
 }
 
 class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
-  double _leaderboardHeight = 0.38; // 38% by default - shows full gold medal position
+  final double _initialLeaderboardHeight = 0.38; // 38% by default - shows full gold medal position
+  late double _leaderboardHeight;
+  late double _heightBeforeKeyboard;
   late double _panelContentHeight;
   bool _isDragging = false;
   bool _isHoveringDivider = false;
   late AnimationController _dragController;
+  late AnimationController _dividerExpandController;
+  late Animation<double> _dividerExpandAnimation;
 
   @override
   void initState() {
     super.initState();
+    _leaderboardHeight = _initialLeaderboardHeight;
+    _heightBeforeKeyboard = _initialLeaderboardHeight;
+    
     _dragController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
+    
+    // Controller for divider expand/collapse animation
+    _dividerExpandController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    
+    // Smooth curve animation from 0 to 1
+    _dividerExpandAnimation = CurvedAnimation(
+      parent: _dividerExpandController,
+      curve: Curves.easeInOutCubic,
+    );
+    
+    // Start with divider expanded
+    _dividerExpandController.value = 1.0;
   }
 
   @override
   void dispose() {
     _dragController.dispose();
+    _dividerExpandController.dispose();
     super.dispose();
+  }
+
+  void _onChatInputFocused() {
+    if (!_isDragging && _leaderboardHeight > 0.0) {
+      setState(() {
+        _heightBeforeKeyboard = _leaderboardHeight;
+        _leaderboardHeight = 0.0;
+      });
+      // Collapse divider animation when keyboard opens
+      _dividerExpandController.reverse();
+    }
+  }
+
+  void _onChatInputUnfocused() {
+    if (!_isDragging) {
+      setState(() {
+        // Always restore to the height before keyboard appeared
+        _leaderboardHeight = _heightBeforeKeyboard;
+        // If somehow it's still 0, restore to initial
+        if (_leaderboardHeight == 0.0) {
+          _leaderboardHeight = _initialLeaderboardHeight;
+          _heightBeforeKeyboard = _initialLeaderboardHeight;
+        }
+      });
+      // Expand divider animation back when keyboard closes
+      _dividerExpandController.forward();
+    }
   }
 
   @override
@@ -192,7 +242,7 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
                 ),
               ),
               
-              // Enhanced draggable divider
+              // Enhanced draggable divider with expand animation
               _buildEnhancedDivider(),
               
               // Chat section - takes remaining space
@@ -233,57 +283,66 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
           setState(() {
             final totalContent = MediaQuery.of(context).size.height - 100;
             final newHeight = _leaderboardHeight + (details.delta.dy / totalContent);
-            _leaderboardHeight = newHeight.clamp(0.15, 0.45);
+            _leaderboardHeight = newHeight.clamp(0.0, 0.95);
           });
         },
         onVerticalDragEnd: (_) {
           setState(() => _isDragging = false);
           if (!_isHoveringDivider) _dragController.reverse();
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 12,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.deepPurple.shade400,
-                Colors.deepPurple.shade500,
-              ],
-            ),
-          ),
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _dragController,
-              builder: (context, child) {
-                final animValue = Curves.easeOut.transform(_dragController.value);
-                return Container(
-                  width: 40 + (80 * animValue),
-                  height: 4,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white.withOpacity(0.95),
-                        Colors.white.withOpacity(0.8),
-                        Colors.grey.shade300.withOpacity(0.9),
-                        Colors.white.withOpacity(0.85),
-                      ],
-                      stops: const [0.0, 0.3, 0.7, 1.0],
-                    ),
-                    borderRadius: BorderRadius.circular(2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
+        child: AnimatedBuilder(
+          animation: _dividerExpandAnimation,
+          builder: (context, child) {
+            final expandValue = _dividerExpandAnimation.value;
+            
+            return Container(
+              height: 12, // Fixed height
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.deepPurple.shade400,
+                    Colors.deepPurple.shade500,
+                  ],
+                ),
+              ),
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _dragController,
+                  builder: (context, child) {
+                    final animValue = Curves.easeOut.transform(_dragController.value);
+                    return Opacity(
+                      opacity: (0.3 + (0.3 * expandValue)) + (0.2 * animValue),
+                      child: Container(
+                        width: 120, // Fixed width - always stays same size
+                        height: 4,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withOpacity(0.95),
+                              Colors.white.withOpacity(0.8),
+                              Colors.grey.shade300.withOpacity(0.9),
+                              Colors.white.withOpacity(0.85),
+                            ],
+                            stops: const [0.0, 0.3, 0.7, 1.0],
+                          ),
+                          borderRadius: BorderRadius.circular(2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15 * (0.5 + (0.5 * expandValue))),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -299,6 +358,8 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
           gameSession: widget.session,
           userId: widget.userId,
           userName: widget.userName,
+          onInputFocused: _onChatInputFocused,
+          onInputUnfocused: _onChatInputUnfocused,
         ),
       ),
     );

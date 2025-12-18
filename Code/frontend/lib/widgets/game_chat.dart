@@ -10,12 +10,16 @@ class GameChat extends StatefulWidget {
   final GameSession gameSession;
   final String userId;
   final String userName;
+  final VoidCallback? onInputFocused;
+  final VoidCallback? onInputUnfocused;
 
   const GameChat({
     Key? key,
     required this.gameSession,
     required this.userId,
     required this.userName,
+    this.onInputFocused,
+    this.onInputUnfocused,
   }) : super(key: key);
 
   @override
@@ -335,31 +339,40 @@ class _GameChatState extends State<GameChat> with AudioMixin {
                     width: 1.2,
                   ),
                 ),
-                child: TextField(
-                  controller: _messageController,
-                  enabled: !isUserDrawing,
-                  maxLines: null,
-                  minLines: 1,
-                  textInputAction: TextInputAction.send,
-                  decoration: InputDecoration(
-                    hintText: isUserDrawing ? 'Drawing...' : 'Guess...',
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w400,
+                child: Focus(
+                  onFocusChange: (hasFocus) {
+                    if (hasFocus) {
+                      widget.onInputFocused?.call();
+                    } else {
+                      widget.onInputUnfocused?.call();
+                    }
+                  },
+                  child: TextField(
+                    controller: _messageController,
+                    enabled: !isUserDrawing,
+                    maxLines: null,
+                    minLines: 1,
+                    textInputAction: TextInputAction.send,
+                    decoration: InputDecoration(
+                      hintText: isUserDrawing ? 'Drawing...' : 'Guess...',
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      isDense: true,
+                    ),
+                    style: const TextStyle(
+                      color: Colors.black87,
                       fontSize: 14,
                     ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    isDense: true,
+                    onSubmitted: !isUserDrawing ? _handleMessage : null,
                   ),
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                  ),
-                  onSubmitted: !isUserDrawing ? _handleMessage : null,
                 ),
               ),
             ),
