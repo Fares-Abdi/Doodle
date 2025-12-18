@@ -33,6 +33,8 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
   bool _isDragging = false;
   bool _isHoveringDivider = false;
   bool _wasKeyboardOpen = false; // Track previous keyboard state
+  bool _userHasManuallyDragged = false; // Track if user has manually adjusted divider
+  bool _lockKeyboardAdjustments = false; // Lock keyboard changes during/after drag
   late AnimationController _dragController;
   late AnimationController _dividerExpandController;
   late Animation<double> _dividerExpandAnimation;
@@ -89,9 +91,10 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
     final isKeyboardOpen = keyboardHeight != 0.0;
     
     // Detect keyboard state change - schedule after build completes
-    if (!_isDragging && isKeyboardOpen != _wasKeyboardOpen) {
+    // Skip adjustment if currently dragging or lock is active
+    if (!_isDragging && !_lockKeyboardAdjustments && isKeyboardOpen != _wasKeyboardOpen) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_isDragging && isKeyboardOpen != _wasKeyboardOpen) {
+        if (!_isDragging && !_lockKeyboardAdjustments && isKeyboardOpen != _wasKeyboardOpen) {
           _wasKeyboardOpen = isKeyboardOpen;
           
           if (isKeyboardOpen) {
@@ -104,13 +107,15 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
               _dividerExpandController.reverse();
             }
           } else {
-            // Keyboard just closed - restore leaderboard
+            // Keyboard just closed - restore leaderboard to where user left it
             setState(() {
               _leaderboardHeight = _heightBeforeKeyboard;
               if (_leaderboardHeight == 0.0) {
                 _leaderboardHeight = _initialLeaderboardHeight;
                 _heightBeforeKeyboard = _initialLeaderboardHeight;
               }
+              // Clear the lock after keyboard cycle completes
+              _lockKeyboardAdjustments = false;
             });
             _dividerExpandController.forward();
           }
@@ -292,7 +297,10 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
       },
       child: GestureDetector(
         onVerticalDragStart: (_) {
-          setState(() => _isDragging = true);
+          setState(() {
+            _isDragging = true;
+            _lockKeyboardAdjustments = true; // Lock keyboard logic during drag
+          });
           _dragController.forward();
         },
         onVerticalDragUpdate: (details) {
@@ -300,10 +308,16 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
             final totalContent = MediaQuery.of(context).size.height - 100;
             final newHeight = _leaderboardHeight + (details.delta.dy / totalContent);
             _leaderboardHeight = newHeight.clamp(0.0, 0.95);
+            // Also update the height before keyboard so dragged position is remembered
+            _heightBeforeKeyboard = _leaderboardHeight;
           });
         },
         onVerticalDragEnd: (_) {
-          setState(() => _isDragging = false);
+          setState(() {
+            _isDragging = false;
+            // Keep lock for a moment to prevent keyboard logic from interfering
+            // It will be cleared on next build when keyboard state stabilizes
+          });
           if (!_isHoveringDivider) _dragController.reverse();
         },
         child: AnimatedBuilder(
