@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' show lerpDouble;
 import '../../models/game_session.dart';
 import '../../widgets/enhanced_leaderboard.dart';
 
@@ -16,6 +17,7 @@ class _TestKeyboardVisibilityScreenState extends State<TestKeyboardVisibilityScr
   
   // Divider variables
   late double _leaderboardHeight;
+  late double _targetLeaderboardHeight;
   late double _heightBeforeKeyboard;
   bool _isDragging = false;
   bool _isHoveringDivider = false;
@@ -35,6 +37,7 @@ class _TestKeyboardVisibilityScreenState extends State<TestKeyboardVisibilityScr
     );
 
     _leaderboardHeight = 0.38;
+    _targetLeaderboardHeight = 0.38;
     _heightBeforeKeyboard = 0.38;
 
     _dragController = AnimationController(
@@ -53,6 +56,11 @@ class _TestKeyboardVisibilityScreenState extends State<TestKeyboardVisibilityScr
     );
 
     _dividerExpandController.value = 1.0;
+    
+    // Listen to animation changes and rebuild
+    _dividerExpandAnimation.addListener(() {
+      setState(() {});
+    });
 
     // Create a mock session for testing
     _testSession = GameSession(
@@ -94,18 +102,17 @@ class _TestKeyboardVisibilityScreenState extends State<TestKeyboardVisibilityScr
     
     if (!_isDragging && keyboardVisible != keyboardWasVisible) {
       print('✅ [TEST] Keyboard state changed! Updating leaderboard height');
-      setState(() {
-        if (keyboardVisible) {
-          _heightBeforeKeyboard = _leaderboardHeight;
-          _leaderboardHeight = 0.0;
-          _dividerExpandController.forward();
-          print('⌨️ [TEST] Keyboard visible - setting height to 0%');
-        } else {
-          _leaderboardHeight = _heightBeforeKeyboard;
-          _dividerExpandController.reverse();
-          print('🚫 [TEST] Keyboard hidden - restoring height to $_heightBeforeKeyboard');
-        }
-      });
+      if (keyboardVisible) {
+        _heightBeforeKeyboard = _leaderboardHeight;
+        _targetLeaderboardHeight = 0.0;
+        _dividerExpandController.reset();
+        _dividerExpandController.forward();
+        print('⌨️ [TEST] Keyboard visible - animating height to 0%');
+      } else {
+        _targetLeaderboardHeight = _heightBeforeKeyboard;
+        _dividerExpandController.reverse();
+        print('🚫 [TEST] Keyboard hidden - animating height to $_heightBeforeKeyboard');
+      }
     }
     
     _lastViewInsetsBottom = viewInsetsBottom;
@@ -116,8 +123,11 @@ class _TestKeyboardVisibilityScreenState extends State<TestKeyboardVisibilityScr
     final headerHeight = 130.0;
     final dividerHeight = 28.0;
     
+    // When dragging, use _leaderboardHeight directly. Otherwise use animation interpolation
+    final height = _isDragging ? _leaderboardHeight : (lerpDouble(_heightBeforeKeyboard, _targetLeaderboardHeight, _dividerExpandAnimation.value) ?? _leaderboardHeight);
+    
     final availableHeight = screenHeight - headerHeight - dividerHeight;
-    return availableHeight * _leaderboardHeight;
+    return availableHeight * height;
   }
 
   Widget _buildEnhancedDivider() {
@@ -141,6 +151,7 @@ class _TestKeyboardVisibilityScreenState extends State<TestKeyboardVisibilityScr
             final totalContent = MediaQuery.of(context).size.height - 100;
             final newHeight = _leaderboardHeight + (details.delta.dy / totalContent);
             _leaderboardHeight = newHeight.clamp(0.0, 0.95);
+            _targetLeaderboardHeight = _leaderboardHeight;
             final percentage = (_leaderboardHeight * 100).toStringAsFixed(1);
             print('📊 [TEST] Divider dragging: $percentage%');
           });
