@@ -227,9 +227,22 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
         onVerticalDragStart: (_) {
           setState(() {
             _isDragging = true;
-            // Stop any ongoing animation and sync heights
+            // Stop any ongoing animation
             _dividerExpandController.stop();
-            _leaderboardHeight = _targetLeaderboardHeight;
+            
+            // Calculate current visual position based on animation state
+            if (_dividerExpandController.isAnimating) {
+              if (_dividerExpandController.status == AnimationStatus.forward) {
+                // Going up: interpolate from _heightBeforeKeyboard to 0
+                _leaderboardHeight = lerpDouble(_heightBeforeKeyboard, 0.0, _dividerExpandAnimation.value) ?? _leaderboardHeight;
+              } else {
+                // Going down: interpolate from 0 to _heightBeforeKeyboard
+                _leaderboardHeight = lerpDouble(0.0, _heightBeforeKeyboard, 1.0 - _dividerExpandAnimation.value) ?? _leaderboardHeight;
+              }
+            }
+            
+            // Sync all height variables to current position
+            _targetLeaderboardHeight = _leaderboardHeight;
             _heightBeforeKeyboard = _leaderboardHeight;
           });
           _dragController.forward();
