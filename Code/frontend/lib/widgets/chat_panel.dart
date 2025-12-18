@@ -251,22 +251,11 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
           duration: const Duration(milliseconds: 200),
           height: 12,
           decoration: BoxDecoration(
-            color: _isDragging || _isHoveringDivider
-                ? const Color.fromARGB(255, 102, 0, 255).withOpacity(0.4)
-                : const Color.fromARGB(255, 102, 0, 255).withOpacity(0.25),
-            border: Border(
-              top: BorderSide(
-                color: _isDragging || _isHoveringDivider
-                    ? Colors.deepPurple.shade400.withOpacity(0.4)
-                    : Colors.deepPurple.shade300.withOpacity(0.3),
-                width: 1,
-              ),
-              bottom: BorderSide(
-                color: _isDragging || _isHoveringDivider
-                    ? Colors.deepPurple.shade400.withOpacity(0.3)
-                    : Colors.deepPurple.shade200.withOpacity(0.2),
-                width: 1,
-              ),
+            gradient: LinearGradient(
+              colors: [
+                Colors.deepPurple.shade400,
+                Colors.deepPurple.shade500,
+              ],
             ),
           ),
           child: Center(
@@ -281,11 +270,11 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
                     gradient: LinearGradient(
                       colors: [
                         (_isDragging || _isHoveringDivider
-                            ? const Color(0xFF6366F1)
-                            : Colors.deepPurple.shade500).withOpacity(0.7),
+                            ? const Color.fromARGB(255, 255, 255, 255)
+                            : const Color.fromARGB(255, 255, 255, 255)).withOpacity(0.8),
                         (_isDragging || _isHoveringDivider
-                            ? const Color(0xFF8B5CF6)
-                            : Colors.deepPurple.shade600).withOpacity(0.6),
+                            ? const Color.fromARGB(255, 255, 255, 255)
+                            : const Color.fromARGB(255, 255, 255, 255)).withOpacity(0.8),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(2),

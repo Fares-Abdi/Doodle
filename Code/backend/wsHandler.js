@@ -89,6 +89,7 @@ wss.on('connection', (ws) => {
               if (idx !== -1) {
                 const playerName = game.players[idx].name;
                 const wasCreator = game.players[idx].isCreator;
+                const wasDrawing = game.players[idx].isDrawing;
                 game.players.splice(idx, 1);
                 log('game', `Player ${playerName} (${playerId}) left game ${gameId}`);
                 
@@ -102,6 +103,12 @@ wss.on('connection', (ws) => {
                 if (game.players.length === 0) {
                   log('game', `Game ${gameId} is now empty - cleanup`);
                   gm.cleanupGame(gameId);
+                }
+                // If the drawer left during drawing phase, transition to next round
+                else if (wasDrawing && game.state === 'GameState.drawing') {
+                  log('game', `Drawer ${playerName} left during drawing phase in game ${gameId} - transitioning to next round`);
+                  clearTimeout(game.roundTimer);
+                  gm.transitionToRoundEnd(gameId);
                 }
                 // Game continues with remaining players - broadcast update
                 else {
@@ -289,6 +296,7 @@ wss.on('connection', (ws) => {
         if (idx !== -1) {
           const playerName = game.players[idx].name;
           const wasCreator = game.players[idx].isCreator;
+          const wasDrawing = game.players[idx].isDrawing;
           game.players.splice(idx, 1);
           log('game', `Player ${playerName} (${playerId}) removed from game ${gameId} due to disconnect`);
           
@@ -302,6 +310,12 @@ wss.on('connection', (ws) => {
           if (game.players.length === 0) {
             log('game', `Game ${gameId} is now empty - cleanup`);
             gm.cleanupGame(gameId);
+          }
+          // If the drawer left during drawing phase, transition to next round
+          else if (wasDrawing && game.state === 'GameState.drawing') {
+            log('game', `Drawer ${playerName} disconnected during drawing phase in game ${gameId} - transitioning to next round`);
+            clearTimeout(game.roundTimer);
+            gm.transitionToRoundEnd(gameId);
           }
           // Game continues with remaining players - broadcast update
           else {

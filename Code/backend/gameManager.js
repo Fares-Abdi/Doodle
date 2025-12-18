@@ -223,13 +223,35 @@ function transitionToRoundEnd(gameId) {
     setTimeout(() => endGame(gameId), ROUND_END_DURATION);
   } else {
     setTimeout(() => {
-      game.currentRound++;
-      const nextDrawerIndex = (currentDrawerIndex + 1) % game.players.length;
-      game.players[currentDrawerIndex].isDrawing = false;
-      game.players[nextDrawerIndex].isDrawing = true;
+      // Check if game still exists and has players
+      if (!games.has(gameId)) return;
+      
+      const currentGame = games.get(gameId);
+      if (!currentGame || currentGame.players.length === 0) {
+        log('game', `Game ${gameId} has no players - aborting round transition`);
+        return;
+      }
 
-      const nextDrawer = game.players[nextDrawerIndex];
-      log('game', `Rotating drawer for game ${gameId}. New drawer: ${nextDrawer.name} (Round ${game.currentRound}/${game.maxRounds})`);
+      // Find the current drawer in case the game state changed
+      const drawerIdx = currentGame.players.findIndex(p => p.isDrawing);
+      
+      // Safety check: if drawer was removed, find the next valid drawer
+      let nextDrawerIndex;
+      if (drawerIdx === -1) {
+        nextDrawerIndex = 0;
+        log('game', `Previous drawer left game ${gameId}, resetting to first player`);
+      } else {
+        nextDrawerIndex = (drawerIdx + 1) % currentGame.players.length;
+      }
+
+      // Reset drawing flags
+      currentGame.players.forEach((p, idx) => {
+        p.isDrawing = idx === nextDrawerIndex;
+      });
+
+      currentGame.currentRound++;
+      const nextDrawer = currentGame.players[nextDrawerIndex];
+      log('game', `Rotating drawer for game ${gameId}. New drawer: ${nextDrawer.name} (Round ${currentGame.currentRound}/${currentGame.maxRounds})`);
 
       startPrepPhase(gameId, true);
     }, ROUND_END_DURATION);
