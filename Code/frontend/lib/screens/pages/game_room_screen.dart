@@ -8,7 +8,6 @@ import '../../widgets/round_transition.dart';
 import '../../widgets/game_over_screen.dart';
 import '../../widgets/game_board.dart';
 import '../../widgets/chat_panel.dart';
-import '../../widgets/player_tile.dart';
 
 class GameRoomScreen extends StatefulWidget {
   final String gameId;
@@ -219,10 +218,6 @@ class _GameRoomScreenState extends State<GameRoomScreen> with SingleTickerProvid
               session: session,
               userId: widget.userId,
               userName: widget.userName,
-              buildPlayerTile: (player) => PlayerTile(
-                player: player,
-                isHighlighted: player.id == widget.userId,
-              ),
             ),
             
             // Bottom-left chat toggle button (doesn't get covered)
