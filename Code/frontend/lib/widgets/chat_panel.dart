@@ -180,14 +180,7 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
               Container(
                 height: _getLeaderboardHeight(context),
                 clipBehavior: Clip.none,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.deepPurple.shade200.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                ),
+                decoration: const BoxDecoration(),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -268,16 +261,24 @@ class _ChatPanelState extends State<ChatPanel> with TickerProviderStateMixin {
                   height: 4,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                       colors: [
-                        (_isDragging || _isHoveringDivider
-                            ? const Color.fromARGB(255, 255, 255, 255)
-                            : const Color.fromARGB(255, 255, 255, 255)).withOpacity(0.8),
-                        (_isDragging || _isHoveringDivider
-                            ? const Color.fromARGB(255, 255, 255, 255)
-                            : const Color.fromARGB(255, 255, 255, 255)).withOpacity(0.8),
+                        Colors.white.withOpacity(0.95),
+                        Colors.white.withOpacity(0.8),
+                        Colors.grey.shade300.withOpacity(0.9),
+                        Colors.white.withOpacity(0.85),
                       ],
+                      stops: const [0.0, 0.3, 0.7, 1.0],
                     ),
                     borderRadius: BorderRadius.circular(2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
                 );
               },
