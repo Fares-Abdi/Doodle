@@ -81,6 +81,19 @@ class _ChatPanelState extends State<ChatPanel> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.deepPurple.shade900.withOpacity(0.4),
+                      width: 1,
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepPurple.shade900.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,6 +163,14 @@ class _ChatPanelState extends State<ChatPanel> {
               Container(
                 height: _getLeaderboardHeight(context),
                 clipBehavior: Clip.none,
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.deepPurple.shade200.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                ),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -161,7 +182,7 @@ class _ChatPanelState extends State<ChatPanel> {
                 ),
               ),
               
-              // Enhanced draggable divider with smooth animations
+              // Enhanced draggable divider
               MouseRegion(
                 cursor: SystemMouseCursors.resizeRow,
                 child: GestureDetector(
@@ -180,65 +201,30 @@ class _ChatPanelState extends State<ChatPanel> {
                       _isDragging = false;
                     });
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    height: _isDragging ? 24 : 16,
+                  child: Container(
+                    height: 20,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          Colors.deepPurple.shade800.withOpacity(_isDragging ? 0.15 : 0.08),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.deepPurple.shade300.withOpacity(0.4),
+                          width: 1,
+                        ),
+                        bottom: BorderSide(
+                          color: Colors.deepPurple.shade400.withOpacity(0.3),
+                          width: 1,
+                        ),
                       ),
                     ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Subtle grip dots
-                        if (_isDragging)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: List.generate(3, (index) => Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 2),
-                              child: Container(
-                                width: 3,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurple.shade300.withOpacity(0.6),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            )),
-                          ),
-                        // Main divider line
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: _isDragging ? 140 : 60,
-                          height: 2.5,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.transparent,
-                                Colors.deepPurple.shade400.withOpacity(_isDragging ? 0.9 : 0.5),
-                                Colors.deepPurple.shade600.withOpacity(_isDragging ? 1.0 : 0.6),
-                                Colors.deepPurple.shade400.withOpacity(_isDragging ? 0.9 : 0.5),
-                                Colors.transparent,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(2),
-                            boxShadow: _isDragging ? [
-                              BoxShadow(
-                                color: Colors.deepPurple.shade400.withOpacity(0.4),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ] : [],
-                          ),
+                    child: Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: _isDragging ? 120 : 50,
+                        height: 2.5,
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple.shade500.withOpacity(_isDragging ? 0.9 : 0.6),
+                          borderRadius: BorderRadius.circular(1.5),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -267,8 +253,8 @@ class _ChatPanelState extends State<ChatPanel> {
   double _getLeaderboardHeight(BuildContext context) {
     // Calculate available height (minus header)
     final screenHeight = MediaQuery.of(context).size.height;
-    final headerHeight = 70.0; // Approximate header height
-    final dividerHeight = 150.0;
+    final headerHeight = 130.0; // Approximate header height
+    final dividerHeight = 5.0;
     
     final availableHeight = screenHeight - headerHeight - dividerHeight;
     return availableHeight * _leaderboardHeight;
