@@ -99,10 +99,30 @@ wss.on('connection', (ws) => {
                   log('game', `Creator role passed to ${game.players[0].name} in game ${gameId}`);
                 }
                 
-                // Handle completely empty game only
+                // If no players left, cleanup as before
                 if (game.players.length === 0) {
                   log('game', `Game ${gameId} is now empty - cleanup`);
                   gm.cleanupGame(gameId);
+                }
+                // If only one player remains, destroy the room and inform them
+                else if (game.players.length === 1) {
+                  const remainingPlayer = game.players[0];
+                  log('game', `Only one player (${remainingPlayer.name}) left in game ${gameId} - destroying room`);
+                  // Mark game as aborted so clients know it's closed
+                  game.state = 'GameState.aborted';
+                  // Send a classy message to the remaining player(s)
+                  gm.broadcast(gameId, { type: 'game_destroyed', gameId, payload: { message: `Room closed: you were the last player in the game. Returning to lobby.` } });
+
+                  // Remove mappings for clients in this game without closing their sockets
+                  for (const [client, gid] of gm.clientToGame.entries()) {
+                    if (gid === gameId) {
+                      gm.clientToGame.delete(client);
+                      gm.clientToPlayerId.delete(client);
+                    }
+                  }
+
+                  // Finally delete the game record
+                  gm.games.delete(gameId);
                 }
                 // If the drawer left during drawing phase, transition to next round
                 else if (wasDrawing && game.state === 'GameState.drawing') {
@@ -306,10 +326,27 @@ wss.on('connection', (ws) => {
             log('game', `Creator role passed to ${game.players[0].name} in game ${gameId}`);
           }
           
-          // Handle completely empty game only
+          // If no players left, cleanup as before
           if (game.players.length === 0) {
             log('game', `Game ${gameId} is now empty - cleanup`);
             gm.cleanupGame(gameId);
+          }
+          // If only one player remains, destroy the room and inform them
+          else if (game.players.length === 1) {
+            const remainingPlayer = game.players[0];
+            log('game', `Only one player (${remainingPlayer.name}) left in game ${gameId} - destroying room`);
+            game.state = 'GameState.aborted';
+            gm.broadcast(gameId, { type: 'game_destroyed', gameId, payload: { message: `Room closed: you were the last player in the game. Returning to lobby.` } });
+
+            // Remove mappings for clients in this game without closing their sockets
+            for (const [client, gid] of gm.clientToGame.entries()) {
+              if (gid === gameId) {
+                gm.clientToGame.delete(client);
+                gm.clientToPlayerId.delete(client);
+              }
+            }
+
+            gm.games.delete(gameId);
           }
           // If the drawer left during drawing phase, transition to next round
           else if (wasDrawing && game.state === 'GameState.drawing') {

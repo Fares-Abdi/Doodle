@@ -78,6 +78,42 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
         });
       }
     });
+
+    // Listen for server notifications such as room destruction
+    _gameService.wsService.notifications.listen((notif) {
+      try {
+        if (notif['type'] == 'game_destroyed' && notif['gameId'] == widget.gameId) {
+          final message = (notif['payload'] != null && notif['payload']['message'] != null)
+              ? notif['payload']['message'] as String
+              : 'The room was closed by the server.';
+
+          if (!mounted) return;
+
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext ctx) {
+              return AlertDialog(
+                title: const Text('Room Closed'),
+                content: Text(message),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      // Return to lobby
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      } catch (e) {
+        // ignore
+      }
+    });
     
     // Initialize divider animation controllers
     _leaderboardHeight = 0.38;

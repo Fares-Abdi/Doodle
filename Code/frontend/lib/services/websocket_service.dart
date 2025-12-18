@@ -18,6 +18,7 @@ class WebSocketService {
   final _gamesListController = StreamController<List<dynamic>>.broadcast();
   final _drawingUpdatesController = StreamController<Map<String, dynamic>>.broadcast();
   final _chatMessagesController = StreamController<Map<String, dynamic>>.broadcast();
+  final _notificationsController = StreamController<Map<String, dynamic>>.broadcast();
 
   bool get isConnected => _isConnected;
 
@@ -62,6 +63,10 @@ class WebSocketService {
               case 'chat_message':
                 _chatMessagesController.add(data);
                 break;
+            }
+            // Notify listeners about server-side notifications
+            if (data['type'] == 'game_destroyed') {
+              _notificationsController.add(data);
             }
           } catch (e) {
             print('Error processing message: $e');
@@ -130,6 +135,7 @@ class WebSocketService {
   Stream<List<dynamic>> get gamesList => _gamesListController.stream;
   Stream<Map<String, dynamic>> get drawingUpdates => _drawingUpdatesController.stream;
   Stream<Map<String, dynamic>> get chatMessages => _chatMessagesController.stream;
+  Stream<Map<String, dynamic>> get notifications => _notificationsController.stream;
 
   void dispose() {
     _channel?.sink.close();
@@ -137,6 +143,7 @@ class WebSocketService {
     _gamesListController.close();
     _drawingUpdatesController.close();
     _chatMessagesController.close();
+    _notificationsController.close();
     _isConnected = false;
   }
 }
