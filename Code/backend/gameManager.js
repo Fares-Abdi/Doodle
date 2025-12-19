@@ -13,22 +13,35 @@ const ROUND_END_DURATION = 2000; // 2 seconds
 const POINTS_FOR_CORRECT_GUESS = 100;
 const POINTS_FOR_DRAWING = 50;
 
-// Word list (French words)
-const words = [
-  'chat','chien','maison','voiture','arbre','fleur','soleil','lune',
-  'livre','table','chaise','portes','fenetre','cuisine','salle',
-  'telephone','ordinateur','souris','clavier','ecran','imprimante',
-  'chaussures','chapeau','robe','pantalon','chemise','jupe',
-  'pomme','orange','banane','fraise','cerise','pasteque','raisin',
-  'pain','beurre','fromage','lait','eau','cafe','the',
-  'montagne','riviere','plage','desert','foret','champ','colline',
-  'oiseau','papillon','abeille','poisson','tortue','serpent','lion',
-  'avion','train','bateau','velo','autobus','motocyclette','moto',
-  'horloge','lampe','lit','couverture','oreiller','miroir','peine',
-  'couleur','numero','lettre','mot','phrase','histoire','chanson',
-  'danser','chanter','courir','sauter','nager','voler','marcher',
-  'heureux','triste','fache','peur','amour','sourire','pleurer'
-];
+// Word lists by difficulty (French words)
+const wordsByDifficulty = {
+  easy: [
+    'chat', 'chien', 'maison', 'voiture', 'arbre', 'fleur', 'soleil', 'lune',
+    'livre', 'table', 'chaise', 'portes', 'fenetre', 'cuisine', 'salle',
+    'telephone', 'ordinateur', 'chaussures', 'chapeau', 'robe', 'pantalon',
+    'pomme', 'orange', 'banane', 'fraise', 'pain', 'eau', 'cafe',
+    'oiseau', 'poisson', 'avion', 'bateau', 'velo', 'lit', 'lampe'
+  ],
+  medium: [
+    'souris', 'clavier', 'ecran', 'imprimante', 'chemise', 'jupe',
+    'cerise', 'pasteque', 'raisin', 'beurre', 'fromage', 'lait', 'the',
+    'montagne', 'riviere', 'plage', 'desert', 'foret', 'champ', 'colline',
+    'papillon', 'abeille', 'tortue', 'serpent', 'lion', 'train', 'motocyclette',
+    'horloge', 'couverture', 'oreiller', 'miroir', 'peine',
+    'couleur', 'numero', 'lettre', 'mot', 'phrase', 'histoire', 'chanson'
+  ],
+  hard: [
+    'ordinateur', 'electromenager', 'hippopotame', 'rhinoceros', 'platypus',
+    'kaleidoscope', 'hieroglyphe', 'archipel', 'cachalot', 'centipede',
+    'chrysalide', 'constellation', 'equilibre', 'ephemere', 'hieroglyphique',
+    'labyrinthe', 'mosaique', 'palindrome', 'parfum', 'photographie',
+    'psychologie', 'pyramide', 'repertoire', 'silhouette', 'stiletto',
+    'susceptible', 'sympathique', 'symphonie', 'synthese', 'systeme',
+    'technique', 'telescope', 'telephone', 'temperament', 'temporaire',
+    'tentacule', 'ternaire', 'terrasse', 'territorial', 'terroriste',
+    'testament', 'tete-a-tete', 'tetard', 'tetine', 'teton'
+  ]
+};
 
 let wss = null;
 function setWss(server) {
@@ -127,7 +140,8 @@ function broadcast(gameId, message) {
   log('event', `Broadcasted ${message.type} to ${count} clients in game ${gameId}`);
 }
 
-function getRandomWord() {
+function getRandomWord(difficulty = 'medium') {
+  const words = wordsByDifficulty[difficulty] || wordsByDifficulty.medium;
   return words[Math.floor(Math.random() * words.length)];
 }
 
@@ -137,13 +151,13 @@ function startPrepPhase(gameId) {
   if (!game || game.state === 'GameState.gameOver') return;
 
   game.state = 'GameState.preparing';
-  game.currentWord = getRandomWord();
+  game.currentWord = getRandomWord(game.wordDifficulty);
   game.roundStartTime = null;
   game.playersGuessedCorrect = [];
   game.drawing_data = null;
 
   const currentDrawer = game.players.find(p => p.isDrawing) || { name: 'unknown' };
-  log('game', `Prep phase started for game ${gameId}. Drawer: ${currentDrawer.name}, Word: ${game.currentWord}`);
+  log('game', `Prep phase started for game ${gameId}. Drawer: ${currentDrawer.name}, Word: ${game.currentWord} (${game.wordDifficulty})`);
 
   broadcast(gameId, {
     type: 'game_update',

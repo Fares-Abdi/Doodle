@@ -26,6 +26,9 @@ wss.on('connection', (ws) => {
             id: gameId,
             state: payload.state || 'GameState.waiting',
             roundTime: payload.roundTime || 80,
+            maxPlayers: payload.maxPlayers || 4,
+            maxRounds: payload.maxRounds || 3,
+            wordDifficulty: payload.wordDifficulty || 'medium',
             roundStartTime: null,
             roundTimer: null,
             prepTimer: null,
@@ -48,7 +51,7 @@ wss.on('connection', (ws) => {
           if (payload.players && payload.players[0] && payload.players[0].id) {
             gm.clientToPlayerId.set(ws, payload.players[0].id);
           }
-          log('game', `Game ${gameId} created by ${game.players?.[0]?.name || 'unknown'}`);
+          log('game', `Game ${gameId} created by ${game.players?.[0]?.name || 'unknown'} - maxPlayers: ${game.maxPlayers}, maxRounds: ${game.maxRounds}, difficulty: ${game.wordDifficulty}`);
           gm.broadcast(gameId, { type: 'game_update', gameId, payload: gm.games.get(gameId) });
           break;
         }
@@ -56,6 +59,20 @@ wss.on('connection', (ws) => {
         case 'join_game': {
           if (gm.games.has(gameId)) {
             const game = gm.games.get(gameId);
+            
+            // Check if game is full
+            if (game.players.length >= game.maxPlayers) {
+              gm.clientToGame.set(ws, gameId);
+              gm.clientToPlayerId.set(ws, payload.player.id);
+              log('error', `Failed to join game ${gameId} - room is full (${game.players.length}/${game.maxPlayers})`);
+              ws.send(JSON.stringify({ 
+                type: 'join_error', 
+                gameId, 
+                payload: { message: 'Room is full' } 
+              }));
+              break;
+            }
+            
             if (!game.players.some(p => p.id === payload.player.id)) {
               // Load saved profile for the joining player
               const savedProfile = playerProfiles.getOrCreatePlayerProfile(payload.player.id, payload.player.name);
@@ -65,11 +82,7 @@ wss.on('connection', (ws) => {
                 photoURL: savedProfile.photoURL,
               };
               game.players.push(playerWithProfile);
-              log('game', `${playerWithProfile.name} joined game ${gameId}`);
-              if (game.players.length === 3) {
-                game.maxRounds = 3;
-                log('game', `Game ${gameId} is now full (3 players)`);
-              }
+              log('game', `${playerWithProfile.name} joined game ${gameId} (${game.players.length}/${game.maxPlayers})`);
             }
             gm.clientToGame.set(ws, gameId);
             gm.clientToPlayerId.set(ws, payload.player.id);
@@ -144,12 +157,16 @@ wss.on('connection', (ws) => {
         case 'start_game': {
           if (gm.games.has(gameId)) {
             const game = gm.games.get(gameId);
-            game.maxRounds = game.players.length * 2;
+            // Use the maxRounds set when creating the room
+            // Default: player count × rounds per player
+            if (!game.maxRounds || game.maxRounds === 0) {
+              game.maxRounds = game.players.length * 2;
+            }
             game.players.forEach((p, i) => p.isDrawing = i === 0);
             game.currentRound = 1;
             game.playersGuessedCorrect = [];
             game.state = 'GameState.preparing';
-            log('game', `Game ${gameId} started. Total rounds: ${game.maxRounds} (${game.players.length} players × 2)`);
+            log('game', `Game ${gameId} started. Total rounds: ${game.maxRounds}, Difficulty: ${game.wordDifficulty}`);
             gm.startPrepPhase(gameId);
           }
           break;

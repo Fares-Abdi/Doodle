@@ -250,6 +250,11 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
                   ),
 
                   Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: _buildRoomSettings(),
+                  ),
+
+                  Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: AnimatedBuilder(
                       animation: _buttonGlowController,
@@ -750,6 +755,106 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   Future<bool> _onBackPressed() async {
     _showExitConfirmation();
     return false;
+  }
+
+  Widget _buildRoomSettings() {
+    final difficulty = widget.session.wordDifficulty;
+    final difficultyColor = difficulty == 'easy'
+        ? Colors.green
+        : difficulty == 'hard'
+            ? Colors.red
+            : Colors.orange;
+
+    final difficultyIcon = difficulty == 'easy'
+        ? Icons.sentiment_satisfied
+        : difficulty == 'hard'
+            ? Icons.sentiment_very_dissatisfied
+            : Icons.sentiment_neutral;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.15),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                const Icon(Icons.people, color: Colors.white70, size: 20),
+                const SizedBox(height: 4),
+                Text(
+                  '${widget.session.players.length}/${widget.session.maxPlayers}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const Text(
+                  'Players',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                const Icon(Icons.loop, color: Colors.white70, size: 20),
+                const SizedBox(height: 4),
+                Text(
+                  '${widget.session.maxRounds}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const Text(
+                  'Rounds',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Icon(difficultyIcon, color: difficultyColor, size: 20),
+                const SizedBox(height: 4),
+                Text(
+                  difficulty[0].toUpperCase() + difficulty.substring(1),
+                  style: TextStyle(
+                    color: difficultyColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const Text(
+                  'Difficulty',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
