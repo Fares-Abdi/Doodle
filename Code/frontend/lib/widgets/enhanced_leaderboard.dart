@@ -113,7 +113,7 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFFFD700).withOpacity(
+                                    color: const Color(0xFFFFC107).withOpacity(
                                       0.7 + (sin(_sparkleController.value * pi * 2) * 0.3),
                                     ),
                                     blurRadius: 30 + (sin(_sparkleController.value * pi * 2) * 15).abs(),
@@ -127,7 +127,7 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                             CustomPaint(
                               painter: SparklePainter(
                                 animation: _sparkleController,
-                                color: const Color(0xFFFFD700),
+                                color: const Color(0xFFFFC107),
                               ),
                               size: const Size(250, 150),
                             ),
@@ -152,7 +152,7 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                       ),
                       if (medalType == 'gold')
                         BoxShadow(
-                          color: const Color(0xFFFFD700).withOpacity(
+                          color: const Color(0xFFFFC107).withOpacity(
                             0.7 + (sin(_sparkleController.value * pi * 2) * 0.3),
                           ),
                           blurRadius: 35 + (sin(_sparkleController.value * pi * 2) * 10).abs(),
@@ -161,10 +161,8 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                         ),
                     ],
                     border: Border.all(
-                      color: isCurrentUser
-                          ? Colors.deepPurple.shade300
-                          : _getMedalColor(medalType).withOpacity(medalType != null ? 0.5 : 0.3),
-                      width: isCurrentUser ? 2.5 : (medalType != null ? 1.5 : 1),
+                      color: _getMedalColor(medalType).withOpacity(medalType != null ? 0.5 : 0.3),
+                      width: medalType != null ? 1.5 : 1,
                     ),
                   ),
                   child: Row(
@@ -182,16 +180,17 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Colors.deepPurple.shade300,
-                                  Colors.deepPurple.shade500,
+                                  medalType == 'gold' ? const Color(0xFFFFD54F) : (medalType == null ? Colors.deepPurple.shade300 : _getMedalColor(medalType).withOpacity(0.7)),
+                                  medalType == 'gold' ? const Color(0xFFFFB300) : (medalType == null ? Colors.deepPurple.shade500 : _getMedalColor(medalType).withOpacity(0.9)),
                                 ],
                               ),
                               boxShadow: [
-                                BoxShadow(
-                                  color: Colors.deepPurple.withOpacity(0.4),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                ),
+                                if (medalType != 'gold')
+                                  BoxShadow(
+                                    color: _getMedalColor(medalType).withOpacity(0.4),
+                                    blurRadius: 8,
+                                    spreadRadius: 2,
+                                  ),
                               ],
                             ),
                             child: Center(
@@ -199,13 +198,6 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                                 player.isDrawing ? Icons.brush : Icons.lightbulb_outline,
                                 size: 24,
                                 color: Colors.white,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    offset: const Offset(0, 1),
-                                    blurRadius: 2,
-                                  ),
-                                ],
                               ),
                             ),
                           ),
@@ -226,25 +218,14 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      color: isCurrentUser
-                                          ? Colors.deepPurple.shade700
-                                          : medalType != null
-                                              ? Colors.grey.shade900
-                                              : Colors.grey.shade800,
+                                      color: medalType != null
+                                          ? Colors.grey.shade900
+                                          : Colors.grey.shade800,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                if (medalType == 'gold')
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 6),
-                                    child: Icon(
-                                      Icons.auto_awesome,
-                                      size: 14,
-                                      color: const Color(0xFFFFED4E),
-                                    ),
-                                  ),
                               ],
                             ),
                             const SizedBox(height: 2),
@@ -259,31 +240,23 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: isCurrentUser
-                              ? Colors.deepPurple.shade100
-                              : medalType != null
-                                  ? Colors.white.withOpacity(0.3)
-                                  : Colors.grey.shade200,
+                          color: medalType != null
+                              ? _getMedalColor(medalType).withOpacity(0.4)
+                              : Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isCurrentUser
-                                ? Colors.deepPurple.shade300
-                                : medalType != null
-                                    ? Colors.white.withOpacity(0.5)
-                                    : Colors.grey.shade400,
-                            width: 1,
+                            color: medalType != null
+                                ? _getMedalColor(medalType)
+                                : Colors.grey.shade400,
+                            width: 2,
                           ),
                         ),
                         child: Text(
                           '${player.score}',
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: isCurrentUser
-                                ? Colors.deepPurple.shade700
-                                : medalType != null
-                                    ? Colors.white
-                                    : Colors.grey.shade700,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            color: Colors.black,
                           ),
                         ),
                       ),
@@ -305,9 +278,9 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFFFD700),
-            Color(0xFFFFA500),
-            Color(0xFFFF8C00),
+            Color(0xFFFFD54F),
+            Color(0xFFFFC107),
+            Color(0xFFFFB300),
           ],
           stops: [0.0, 0.5, 1.0],
         );
@@ -316,9 +289,9 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFF5F5F5),
-            Color(0xFFE8E8E8),
-            Color(0xFFC0C0C0),
+            Color(0xFFF0F4F8),
+            Color(0xFFE1E8F0),
+            Color(0xFFB4C7E7),
           ],
         );
       case 'bronze':
@@ -326,9 +299,9 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFCD7F32),
-            Color(0xFFB87333),
-            Color(0xFFA0826D),
+            Color(0xFFD2691E),
+            Color(0xFFC97955),
+            Color(0xFFB8734C),
           ],
         );
       default:
@@ -346,11 +319,11 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
   Color _getMedalColor(String? medalType) {
     switch (medalType) {
       case 'gold':
-        return const Color(0xFFFFD700);
+        return const Color(0xFFFFC107);
       case 'silver':
-        return const Color(0xFFC0C0C0);
+        return const Color(0xFFB4C7E7);
       case 'bronze':
-        return const Color(0xFFCD7F32);
+        return const Color(0xFFC97955);
       default:
         return Colors.grey;
     }
@@ -360,21 +333,21 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
     switch (medalType) {
       case 'gold':
         return const [
-          Color(0xFFFFED4E),
-          Color(0xFFFFD700),
-          Color(0xFFFFA500),
+          Color(0xFFFFE082),
+          Color(0xFFFFC107),
+          Color(0xFFFFB300),
         ];
       case 'silver':
         return const [
-          Color(0xFFF5F5F5),
-          Color(0xFFE8E8E8),
-          Color(0xFFC0C0C0),
+          Color(0xFFF0F4F8),
+          Color(0xFFE1E8F0),
+          Color(0xFFB4C7E7),
         ];
       case 'bronze':
         return const [
-          Color(0xFFE8A76F),
-          Color(0xFFCD7F32),
-          Color(0xFFA0826D),
+          Color(0xFFD2691E),
+          Color(0xFFC97955),
+          Color(0xFFB8734C),
         ];
       default:
         return [Colors.grey.shade300, Colors.grey.shade400];
