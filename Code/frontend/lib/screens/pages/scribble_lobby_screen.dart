@@ -984,18 +984,6 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                         color: Colors.black87,
                       ),
                     ),
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: colorSet,
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
