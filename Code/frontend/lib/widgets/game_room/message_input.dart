@@ -50,10 +50,17 @@ class MessageInput extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          colors: [
+            Colors.deepPurple.shade400,
+            Colors.deepPurple.shade600,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         border: Border(
           top: BorderSide(
-            color: Colors.grey.shade300,
+            color: Colors.deepPurple.shade700,
             width: 1,
           ),
         ),
@@ -70,30 +77,31 @@ class MessageInput extends StatelessWidget {
             child: TextField(
               controller: controller,
               style: const TextStyle(
-                color: Colors.black87,
+                color: Colors.white,
                 fontSize: 14,
               ),
+              cursorColor: Colors.white,
               decoration: InputDecoration(
                 hintText: 'Type a message...',
                 hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
+                  color: Colors.white,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide(
-                    color: Colors.grey.shade300,
+                    color: Colors.white,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide(
-                    color: Colors.grey.shade300,
+                    color: Colors.white,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: const BorderSide(
-                    color: Colors.deepPurple,
+                    color: Colors.white,
                     width: 2,
                   ),
                 ),
@@ -101,6 +109,7 @@ class MessageInput extends StatelessWidget {
                   horizontal: 16,
                   vertical: 10,
                 ),
+                isDense: true,
               ),
             ),
           ),
@@ -109,8 +118,8 @@ class MessageInput extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.deepPurple.shade500,
-                  Colors.deepPurple.shade600,
+                  Colors.white,
+                  Colors.white,
                 ],
               ),
               shape: BoxShape.circle,
@@ -121,7 +130,7 @@ class MessageInput extends StatelessWidget {
                   onSend(controller.text);
                 }
               },
-              icon: const Icon(Icons.send, color: Colors.white),
+              icon: const Icon(Icons.send, color: Colors.deepPurple),
               iconSize: 20,
               padding: const EdgeInsets.all(8),
             ),
