@@ -48,6 +48,7 @@ class GameSession {
   int currentRound;
   int maxRounds;
   int maxPlayers;
+  int roundTimeLimit;  // 'seconds per round (30-180)
   String wordDifficulty;  // 'easy', 'medium', 'hard'
   DateTime? roundStartTime;
   List<String> playersGuessedCorrect;
@@ -61,6 +62,7 @@ class GameSession {
     this.currentRound = 0,
     this.maxRounds = 3,
     this.maxPlayers = 4,
+    this.roundTimeLimit = 80,
     this.wordDifficulty = 'medium',
     this.roundStartTime,
     this.playersGuessedCorrect = const [],
@@ -75,6 +77,7 @@ class GameSession {
     'currentRound': currentRound,
     'maxRounds': maxRounds,
     'maxPlayers': maxPlayers,
+    'roundTimeLimit': roundTimeLimit,
     'wordDifficulty': wordDifficulty,
     'roundStartTime': roundStartTime?.millisecondsSinceEpoch,
     'playersGuessedCorrect': playersGuessedCorrect,
@@ -94,6 +97,7 @@ class GameSession {
     currentRound: json['currentRound'] ?? 0,
     maxRounds: json['maxRounds'] ?? 3,
     maxPlayers: json['maxPlayers'] ?? 4,
+    roundTimeLimit: json['roundTimeLimit'] ?? 80,
     wordDifficulty: json['wordDifficulty'] ?? 'medium',
     roundStartTime: json['roundStartTime'] != null
         ? DateTime.fromMillisecondsSinceEpoch(json['roundStartTime'])
@@ -110,6 +114,7 @@ class GameSession {
     int maxPlayers = 4,
     int maxRounds = 3,
     String wordDifficulty = 'medium',
+    int roundTimeLimit = 80,
   }) async {
     final session = GameSession(
       id: _generateId(),
@@ -120,6 +125,7 @@ class GameSession {
       maxPlayers: maxPlayers,
       maxRounds: maxRounds,
       wordDifficulty: wordDifficulty,
+      roundTimeLimit: roundTimeLimit,
     );
     
     WebSocketService().sendMessage('create_game', session.id, session.toJson());

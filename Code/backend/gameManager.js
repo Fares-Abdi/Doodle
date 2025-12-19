@@ -7,7 +7,7 @@ const clientToGame = new Map();
 const clientToPlayerId = new Map();
 
 // Timing & scoring constants
-const ROUND_DURATION = 80000; // 80 seconds
+const DEFAULT_ROUND_DURATION = 80000; // 80 seconds (default)
 const PREP_DURATION = 3000;   // 3 seconds
 const ROUND_END_DURATION = 2000; // 2 seconds
 const POINTS_FOR_CORRECT_GUESS = 100;
@@ -114,6 +114,9 @@ function cleanGameDataForBroadcast(game) {
     currentWord: game.currentWord,
     currentRound: game.currentRound,
     maxRounds: game.maxRounds,
+    maxPlayers: game.maxPlayers,
+    wordDifficulty: game.wordDifficulty,
+    roundTimeLimit: game.roundTimeLimit,
     roundStartTime: game.roundStartTime,
     playersGuessedCorrect: game.playersGuessedCorrect,
     drawing_data: game.drawing_data
@@ -187,7 +190,8 @@ function startDrawingPhase(gameId) {
   game.roundStartTime = Date.now();
 
   const currentDrawer = game.players.find(p => p.isDrawing);
-  log('game', `Drawing phase started for game ${gameId}. Drawer: ${currentDrawer?.name}`);
+  const roundDuration = (game.roundTimeLimit || 80) * 1000; // Convert seconds to milliseconds
+  log('game', `Drawing phase started for game ${gameId}. Drawer: ${currentDrawer?.name}, Duration: ${game.roundTimeLimit}s`);
 
   const payload = cleanGameDataForBroadcast(game);
   payload.serverTime = Date.now();
@@ -208,7 +212,7 @@ function startDrawingPhase(gameId) {
         transitionToRoundEnd(gameId);
       }
     }
-  }, ROUND_DURATION);
+  }, roundDuration);
 }
 
 function transitionToRoundEnd(gameId) {
@@ -345,7 +349,7 @@ module.exports = {
   endGame,
   cleanupGame,
   // constants
-  ROUND_DURATION,
+  DEFAULT_ROUND_DURATION,
   PREP_DURATION,
   ROUND_END_DURATION,
   POINTS_FOR_CORRECT_GUESS,

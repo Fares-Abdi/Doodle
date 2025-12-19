@@ -145,12 +145,13 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
     int maxPlayers = 4;
     int maxRounds = 3;
     String wordDifficulty = 'medium';
+    int roundTimeLimit = 80;
 
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.6),
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => BackdropFilter(
+        builder: (context, dialogSetState) => BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Dialog(
             backgroundColor: Colors.transparent,
@@ -245,7 +246,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                               activeColor: Colors.deepPurpleAccent,
                               inactiveColor: Colors.white.withOpacity(0.2),
                               onChanged: (value) {
-                                setState(() => maxPlayers = value.toInt());
+                                dialogSetState(() => maxPlayers = value.toInt());
                               },
                             ),
                           ],
@@ -306,8 +307,77 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                               activeColor: Colors.amber,
                               inactiveColor: Colors.white.withOpacity(0.2),
                               onChanged: (value) {
-                                setState(() => maxRounds = value.toInt());
+                                dialogSetState(() => maxRounds = value.toInt());
                               },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Round Time Limit
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.15),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Time per Round',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.cyan,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${roundTimeLimit}s',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Slider(
+                              value: roundTimeLimit.toDouble(),
+                              min: 30,
+                              max: 180,
+                              divisions: 15,
+                              activeColor: Colors.cyan,
+                              inactiveColor: Colors.white.withOpacity(0.2),
+                              onChanged: (value) {
+                                dialogSetState(() => roundTimeLimit = value.round().toInt());
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '30s - 3 minutes',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withOpacity(0.6),
+                              ),
                             ),
                           ],
                         ),
@@ -343,7 +413,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                                     'Easy',
                                     'easy',
                                     wordDifficulty,
-                                    () => setState(() => wordDifficulty = 'easy'),
+                                    () => dialogSetState(() => wordDifficulty = 'easy'),
                                     Colors.green,
                                   ),
                                 ),
@@ -353,7 +423,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                                     'Medium',
                                     'medium',
                                     wordDifficulty,
-                                    () => setState(() => wordDifficulty = 'medium'),
+                                    () => dialogSetState(() => wordDifficulty = 'medium'),
                                     Colors.orange,
                                   ),
                                 ),
@@ -363,7 +433,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                                     'Hard',
                                     'hard',
                                     wordDifficulty,
-                                    () => setState(() => wordDifficulty = 'hard'),
+                                    () => dialogSetState(() => wordDifficulty = 'hard'),
                                     Colors.red,
                                   ),
                                 ),
@@ -406,6 +476,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                                   maxPlayers: maxPlayers,
                                   maxRounds: maxRounds,
                                   wordDifficulty: wordDifficulty,
+                                  roundTimeLimit: roundTimeLimit,
                                 );
                               },
                               style: ElevatedButton.styleFrom(
@@ -475,6 +546,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
     required int maxPlayers,
     required int maxRounds,
     required String wordDifficulty,
+    required int roundTimeLimit,
   }) async {
     await playButtonClick();
 
@@ -488,6 +560,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
       maxPlayers: maxPlayers,
       maxRounds: maxRounds,
       wordDifficulty: wordDifficulty,
+      roundTimeLimit: roundTimeLimit,
     );
     if (context.mounted) {
       Navigator.push(

@@ -25,7 +25,8 @@ wss.on('connection', (ws) => {
             ...payload,
             id: gameId,
             state: payload.state || 'GameState.waiting',
-            roundTime: payload.roundTime || 80,
+            roundTime: payload.roundTimeLimit || 80,  // Use roundTimeLimit for actual duration
+            roundTimeLimit: payload.roundTimeLimit || 80,  // Store the limit value
             maxPlayers: payload.maxPlayers || 4,
             maxRounds: payload.maxRounds || 3,
             wordDifficulty: payload.wordDifficulty || 'medium',
@@ -51,7 +52,7 @@ wss.on('connection', (ws) => {
           if (payload.players && payload.players[0] && payload.players[0].id) {
             gm.clientToPlayerId.set(ws, payload.players[0].id);
           }
-          log('game', `Game ${gameId} created by ${game.players?.[0]?.name || 'unknown'} - maxPlayers: ${game.maxPlayers}, maxRounds: ${game.maxRounds}, difficulty: ${game.wordDifficulty}`);
+          log('game', `Game ${gameId} created by ${game.players?.[0]?.name || 'unknown'} - maxPlayers: ${game.maxPlayers}, maxRounds: ${game.maxRounds}, difficulty: ${game.wordDifficulty}, roundTime: ${game.roundTimeLimit}s`);
           gm.broadcast(gameId, { type: 'game_update', gameId, payload: gm.games.get(gameId) });
           break;
         }

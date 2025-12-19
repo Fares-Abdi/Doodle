@@ -36,7 +36,6 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   late AnimationController _buttonGlowController;
   late AnimationController _playerJoinController;
   
-  static const int maxPlayersPerGame = 6;
   late Map<String, Player> _displayPlayers;
   String? _lastJoinedPlayerId;
   String? _playerLeftMessage;
@@ -235,7 +234,6 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
 
                   Expanded(
                     child: Padding(
@@ -244,10 +242,7 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
                     ),
                   ),
 
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: _buildConnectionStatus(),
-                  ),
+
 
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -370,7 +365,8 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   }
 
   Widget _buildPlayersGrid() {
-    final emptySlots = maxPlayersPerGame - _displayPlayers.length;
+    final maxPlayers = widget.session.maxPlayers;
+    final emptySlots = maxPlayers - _displayPlayers.length;
     
     return GridView.count(
       crossAxisCount: 2,
@@ -517,52 +513,7 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildConnectionStatus() {
-    if (_playerLeftMessage != null) {
-      return TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.0, end: 1.0),
-        duration: const Duration(milliseconds: 400),
-        builder: (context, value, child) {
-          return Transform.translate(
-            offset: Offset(0, 10 * (1 - value)),
-            child: Opacity(
-              opacity: value,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade900.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
-                  ),
-                  child: Text(
-                    _playerLeftMessage!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.redAccent,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        'Players: ${_displayPlayers.length}/$maxPlayersPerGame',
-        style: const TextStyle(
-          color: Color(0xFFD1B7FF),
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
+
 
   void _showProfileEditor() {
     final currentPlayer = widget.session.players.firstWhere(
@@ -780,77 +731,104 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
           color: Colors.white.withOpacity(0.15),
         ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              children: [
-                const Icon(Icons.people, color: Colors.white70, size: 20),
-                const SizedBox(height: 4),
-                Text(
-                  '${widget.session.players.length}/${widget.session.maxPlayers}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    const Icon(Icons.people, color: Colors.white70, size: 20),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${widget.session.players.length}/${widget.session.maxPlayers}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Text(
+                      'Players',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-                const Text(
-                  'Players',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 11,
-                  ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    const Icon(Icons.loop, color: Colors.white70, size: 20),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${widget.session.maxRounds}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Text(
+                      'Rounds',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                const Icon(Icons.loop, color: Colors.white70, size: 20),
-                const SizedBox(height: 4),
-                Text(
-                  '${widget.session.maxRounds}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    const Icon(Icons.timer, color: Colors.cyan, size: 20),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${widget.session.roundTimeLimit}s',
+                      style: const TextStyle(
+                        color: Colors.cyan,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Text(
+                      'Time',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-                const Text(
-                  'Rounds',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 11,
-                  ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Icon(difficultyIcon, color: difficultyColor, size: 20),
+                    const SizedBox(height: 4),
+                    Text(
+                      difficulty[0].toUpperCase() + difficulty.substring(1),
+                      style: TextStyle(
+                        color: difficultyColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Text(
+                      'Difficulty',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                Icon(difficultyIcon, color: difficultyColor, size: 20),
-                const SizedBox(height: 4),
-                Text(
-                  difficulty[0].toUpperCase() + difficulty.substring(1),
-                  style: TextStyle(
-                    color: difficultyColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const Text(
-                  'Difficulty',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -858,8 +836,30 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   }
 }
 
-class _EmptySlot extends StatelessWidget {
+class _EmptySlot extends StatefulWidget {
   const _EmptySlot();
+
+  @override
+  State<_EmptySlot> createState() => _EmptySlotState();
+}
+
+class _EmptySlotState extends State<_EmptySlot> with TickerProviderStateMixin {
+  late AnimationController _dotsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _dotsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _dotsController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -872,14 +872,21 @@ class _EmptySlot extends StatelessWidget {
         ),
         color: Colors.white.withOpacity(0.03),
       ),
-      child: const Center(
-        child: Text(
-          'Waiting for\nplayer...',
-          style: TextStyle(
-            color: Color(0xFFB595D4),
-            fontSize: 14,
-          ),
-          textAlign: TextAlign.center,
+      child: Center(
+        child: AnimatedBuilder(
+          animation: _dotsController,
+          builder: (context, child) {
+            final progress = _dotsController.value;
+            final dots = progress < 0.33 ? '.' : progress < 0.66 ? '..' : '...';
+            return Text(
+              'Waiting for\nplayer$dots',
+              style: const TextStyle(
+                color: Color(0xFFB595D4),
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            );
+          },
         ),
       ),
     );
