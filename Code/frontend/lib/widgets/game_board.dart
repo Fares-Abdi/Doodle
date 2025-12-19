@@ -26,7 +26,6 @@ class _GameBoardState extends State<GameBoard> with AudioMixin {
   Timer? _timer;
   bool _roundEnded = false;
   bool _showCountdown = true;
-  static const int ROUND_DURATION = 80; // seconds
 
   @override
   void initState() {
@@ -217,7 +216,7 @@ class _GameBoardState extends State<GameBoard> with AudioMixin {
         // Calculate remaining time
         final now = DateTime.now();
         final elapsedMs = now.difference(widget.session.roundStartTime!).inMilliseconds;
-        final totalRoundMs = ROUND_DURATION * 1000;
+        final totalRoundMs = (widget.session.roundTimeLimit ?? 80) * 1000;
         final remainingMs = totalRoundMs - elapsedMs;
         final remaining = remainingMs > 0 ? (remainingMs / 1000).ceil() : 0;
 

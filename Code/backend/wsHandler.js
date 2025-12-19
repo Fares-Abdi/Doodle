@@ -25,7 +25,6 @@ wss.on('connection', (ws) => {
             ...payload,
             id: gameId,
             state: payload.state || 'GameState.waiting',
-            roundTime: payload.roundTimeLimit || 80,  // Use roundTimeLimit for actual duration
             roundTimeLimit: payload.roundTimeLimit || 80,  // Store the limit value
             maxPlayers: payload.maxPlayers || 4,
             maxRounds: payload.maxRounds || 3,
@@ -224,7 +223,7 @@ wss.on('connection', (ws) => {
                 // Calculate speed-based points
                 // Faster guesses = more points
                 const timeElapsed = Date.now() - new Date(game.roundStartTime).getTime();
-                const totalRoundTime = game.roundTime * 1000; // Convert to ms
+                const totalRoundTime = game.roundTimeLimit * 1000; // Convert to ms
                 const timeRemaining = Math.max(0, totalRoundTime - timeElapsed);
                 const speedPercentage = timeRemaining / totalRoundTime; // 1.0 = instant, 0.0 = timeout
                 
