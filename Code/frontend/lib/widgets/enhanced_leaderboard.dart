@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/game_session.dart';
+import '../utils/avatar_color_helper.dart';
 import 'dart:math';
 
 class EnhancedLeaderboard extends StatefulWidget {
@@ -161,13 +162,15 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                         ),
                     ],
                     border: Border.all(
-                      color: _getMedalColor(medalType).withOpacity(medalType != null ? 0.5 : 0.3),
-                      width: medalType != null ? 1.5 : 1,
+                      color: isCurrentUser
+                          ? Colors.deepPurple.shade400
+                          : _getMedalColor(medalType).withOpacity(medalType != null ? 0.5 : 0.3),
+                      width: isCurrentUser ? 3 : (medalType != null ? 1.5 : 1),
                     ),
                   ),
                   child: Row(
                     children: [
-                      // Medal badge with crown overlay for gold
+                      // Avatar with role indicator badge
                       Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -180,23 +183,67 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  medalType == 'gold' ? const Color(0xFFFFD54F) : (medalType == null ? Colors.deepPurple.shade300 : _getMedalColor(medalType).withOpacity(0.7)),
-                                  medalType == 'gold' ? const Color(0xFFFFB300) : (medalType == null ? Colors.deepPurple.shade500 : _getMedalColor(medalType).withOpacity(0.9)),
+                                  AvatarColorHelper.getColorFromName(player.photoURL),
+                                  AvatarColorHelper.getColorFromName(player.photoURL).withOpacity(0.7),
                                 ],
                               ),
+                              border: Border.all(
+                                color: _getMedalColor(medalType).withOpacity(0.6),
+                                width: 2,
+                              ),
                               boxShadow: [
-                                if (medalType != 'gold')
-                                  BoxShadow(
-                                    color: _getMedalColor(medalType).withOpacity(0.4),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
-                                  ),
+                                BoxShadow(
+                                  color: AvatarColorHelper.getColorFromName(player.photoURL).withOpacity(0.3),
+                                  blurRadius: 6,
+                                  spreadRadius: 1,
+                                ),
                               ],
                             ),
                             child: Center(
+                              child: Text(
+                                player.name.isNotEmpty ? player.name[0].toUpperCase() : '?',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black26,
+                                      offset: Offset(0, 1),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Role indicator badge
+                          Positioned(
+                            bottom: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    _getMedalColor(medalType),
+                                    _getMedalColor(medalType).withOpacity(0.7),
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _getMedalColor(medalType).withOpacity(0.4),
+                                    blurRadius: 4,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
                               child: Icon(
                                 player.isDrawing ? Icons.brush : Icons.lightbulb_outline,
-                                size: 24,
+                                size: 14,
                                 color: Colors.white,
                               ),
                             ),
