@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../services/game_service.dart';
 import '../../services/websocket_service.dart';
 import '../../utils/audio_mixin.dart';
@@ -694,78 +695,526 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
 
   void _showServerSettingsDialog() {
     final TextEditingController urlController = TextEditingController(text: _webSocketUrl);
+    final audioService = getAudioService();
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: const [
-            Icon(Icons.settings, color: Colors.deepPurple),
-            SizedBox(width: 8),
-            Text('Server Settings'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'WebSocket Server URL:',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: InputDecoration(
-                hintText: 'ws://192.168.200.163:8080',
-                prefixIcon: const Icon(Icons.link, color: Colors.deepPurple),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final newUrl = urlController.text.trim();
-              if (newUrl.isNotEmpty) {
-                await WebSocketService().reconnectWithNewUrl(newUrl);
-                _webSocketUrl = newUrl;
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Server URL updated successfully'),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+      barrierColor: Colors.black.withOpacity(0.6),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: SingleChildScrollView(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.deepPurple.shade800.withOpacity(0.95),
+                      Colors.deepPurple.shade900.withOpacity(0.95),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.purpleAccent.withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepPurple.withOpacity(0.5),
+                      blurRadius: 20,
+                      spreadRadius: 5,
                     ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.deepPurple.shade600,
+                              Colors.purpleAccent,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.settings_rounded,
+                          size: 32,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Title
+                      const Text(
+                        'Settings',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // Description
+                      Text(
+                        'Configure server connection and audio',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.8),
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Server URL Section
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.link_rounded,
+                                  color: Colors.purpleAccent,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Server URL',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: urlController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                hintText: 'ws://192.168.200.163:8080',
+                                hintStyle: TextStyle(
+                                  color: Colors.white.withOpacity(0.5),
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.link,
+                                  color: Colors.purpleAccent.withOpacity(0.6),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.purpleAccent,
+                                    width: 2,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Audio Section
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.volume_up_rounded,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Audio Settings',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Music Volume
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          audioService.isMusicEnabled
+                                              ? Icons.music_note_rounded
+                                              : Icons.music_off_rounded,
+                                          color: Colors.cyan,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Music',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      '${(audioService.musicVolume * 100).toStringAsFixed(0)}%',
+                                      style: TextStyle(
+                                        color: Colors.cyan.withOpacity(0.8),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 4,
+                                    thumbShape: RoundSliderThumbShape(
+                                      elevation: 4,
+                                      enabledThumbRadius: 8,
+                                    ),
+                                    overlayShape: RoundSliderOverlayShape(
+                                      overlayRadius: 12,
+                                    ),
+                                  ),
+                                  child: Slider(
+                                    value: audioService.musicVolume,
+                                    onChanged: (value) async {
+                                      await audioService.setMusicVolume(value);
+                                      setState(() {});
+                                    },
+                                    activeColor: Colors.cyan,
+                                    inactiveColor: Colors.white.withOpacity(0.2),
+                                    min: 0,
+                                    max: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // SFX Volume
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          audioService.isSfxEnabled
+                                              ? Icons.volume_up_rounded
+                                              : Icons.volume_mute_rounded,
+                                          color: Colors.greenAccent,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Sound Effects',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      '${(audioService.sfxVolume * 100).toStringAsFixed(0)}%',
+                                      style: TextStyle(
+                                        color: Colors.greenAccent.withOpacity(0.8),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 4,
+                                    thumbShape: RoundSliderThumbShape(
+                                      elevation: 4,
+                                      enabledThumbRadius: 8,
+                                    ),
+                                    overlayShape: RoundSliderOverlayShape(
+                                      overlayRadius: 12,
+                                    ),
+                                  ),
+                                  child: Slider(
+                                    value: audioService.sfxVolume,
+                                    onChanged: (value) async {
+                                      await audioService.setSfxVolume(value);
+                                      setState(() {});
+                                    },
+                                    activeColor: Colors.greenAccent,
+                                    inactiveColor: Colors.white.withOpacity(0.2),
+                                    min: 0,
+                                    max: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Toggles
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () async {
+                                        await audioService.toggleMusic();
+                                        setState(() {});
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: audioService.isMusicEnabled
+                                              ? Colors.cyan.withOpacity(0.2)
+                                              : Colors.red.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: audioService.isMusicEnabled
+                                                ? Colors.cyan.withOpacity(0.5)
+                                                : Colors.red.withOpacity(0.5),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              audioService.isMusicEnabled
+                                                  ? Icons.check_circle_rounded
+                                                  : Icons.cancel_rounded,
+                                              color: audioService.isMusicEnabled
+                                                  ? Colors.cyan
+                                                  : Colors.red,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            const Text(
+                                              'Music',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () async {
+                                        audioService.toggleSfx();
+                                        setState(() {});
+                                      },
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: audioService.isSfxEnabled
+                                              ? Colors.greenAccent.withOpacity(0.2)
+                                              : Colors.red.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: audioService.isSfxEnabled
+                                                ? Colors.greenAccent.withOpacity(0.5)
+                                                : Colors.red.withOpacity(0.5),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              audioService.isSfxEnabled
+                                                  ? Icons.check_circle_rounded
+                                                  : Icons.cancel_rounded,
+                                              color: audioService.isSfxEnabled
+                                                  ? Colors.greenAccent
+                                                  : Colors.red,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            const Text(
+                                              'SFX',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      
+                      // Buttons
+                      Column(
+                        children: [
+                          // Cancel Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple.shade600,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.purpleAccent.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // Save Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                final newUrl = urlController.text.trim();
+                                if (newUrl.isNotEmpty) {
+                                  await WebSocketService().reconnectWithNewUrl(newUrl);
+                                  _webSocketUrl = newUrl;
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                          'Settings updated successfully',
+                                        ),
+                                        backgroundColor: Colors.green,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade600,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Save Settings',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            child: const Text('Save'),
           ),
-        ],
+        ),
       ),
     );
   }
