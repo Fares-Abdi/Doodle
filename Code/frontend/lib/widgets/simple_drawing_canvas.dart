@@ -105,9 +105,17 @@ class _DrawingPainter extends CustomPainter {
       
       final point = drawingPoints[i]!;
       if (point.shape == null) {
-        // Draw freehand points
+        // Draw freehand points - look ahead to find next valid point
         if (i < drawingPoints.length - 1 && drawingPoints[i + 1] != null) {
-          canvas.drawLine(point.offset, drawingPoints[i + 1]!.offset, point.paint);
+          final nextPoint = drawingPoints[i + 1]!;
+          final paint = Paint()
+            ..color = point.paint.color
+            ..strokeWidth = point.paint.strokeWidth
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..isAntiAlias = true
+            ..style = PaintingStyle.stroke;
+          canvas.drawLine(point.offset, nextPoint.offset, paint);
         }
       } else if (point.endOffset != null) {
         // Draw permanent shapes
@@ -297,8 +305,13 @@ void onPanStart(DragStartDetails details) {
   }
 
   void onPanEnd(DragEndDetails details) {
-    if (selectedShape != 'freehand' && selectedShape != 'eraser' && 
-        startPoint != null && currentDragPosition != null) {
+    // Add separator for freehand/eraser strokes to prevent connecting
+    if (selectedShape == 'freehand' || selectedShape == 'eraser') {
+      setState(() {
+        drawingPoints.add(null);
+      });
+    } else if (startPoint != null && currentDragPosition != null) {
+      // Handle shaped objects
       setState(() {
         drawingPoints.add(DrawingPoint(
           offset: startPoint!.offset,

@@ -47,5 +47,12 @@
     "photoURL": "purple",
     "createdAt": "2025-12-18T17:55:29.640Z",
     "lastUpdated": "2025-12-19T15:11:38.306Z"
+  },
+  "ed206c68-b213-4111-ba77-8eac258c0d7d": {
+    "id": "ed206c68-b213-4111-ba77-8eac258c0d7d",
+    "name": "Player ed20",
+    "photoURL": "blue",
+    "createdAt": "2025-12-19T20:45:50.156Z",
+    "lastUpdated": "2025-12-19T20:45:50.156Z"
   }
 }
