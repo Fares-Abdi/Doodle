@@ -104,8 +104,8 @@ wss.on('connection', (ws) => {
                   log('game', `Game ${gameId} is now empty - cleanup`);
                   gm.cleanupGame(gameId);
                 }
-                // If only one player remains, destroy the room and inform them
-                else if (game.players.length === 1) {
+                // If only one player remains, destroy the room only if not in waiting or game over state
+                else if (game.players.length === 1 && game.state !== 'GameState.waiting' && game.state !== 'GameState.gameOver') {
                   const remainingPlayer = game.players[0];
                   log('game', `Only one player (${remainingPlayer.name}) left in game ${gameId} - destroying room`);
                   // Mark game as aborted so clients know it's closed
