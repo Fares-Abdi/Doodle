@@ -76,16 +76,16 @@ class _ChatMessagesListState extends State<ChatMessagesList> {
                     margin: const EdgeInsets.symmetric(horizontal: 12),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [
-                          Colors.deepPurple.shade400,
-                          Colors.deepPurple.shade600,
+                          Color(0xFF7C3AED),
+                          Color(0xFF6D28D9),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.deepPurple.withOpacity(0.3),
+                          color: const Color(0xFF7C3AED).withOpacity(0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -209,13 +209,27 @@ class _ChatMessagesListState extends State<ChatMessagesList> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.deepPurple.shade50,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF7C3AED).withOpacity(0.2),
+                          const Color(0xFF3B82F6).withOpacity(0.15),
+                        ],
+                      ),
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF7C3AED).withOpacity(0.2),
+                          blurRadius: 16,
+                          spreadRadius: 4,
+                        ),
+                      ],
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.chat_bubble_outline_rounded,
                       size: 48,
-                      color: Colors.deepPurple.shade300,
+                      color: Color(0xFF7C3AED),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -224,7 +238,8 @@ class _ChatMessagesListState extends State<ChatMessagesList> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade700,
+                      color: Colors.grey.shade800,
+                      letterSpacing: 0.3,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -232,7 +247,8 @@ class _ChatMessagesListState extends State<ChatMessagesList> {
                     'Start guessing to chat with players!',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade500,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -247,16 +263,30 @@ class _ChatMessagesListState extends State<ChatMessagesList> {
   @override
   Widget build(BuildContext context) {
     if (widget.messages.isEmpty) {
-      return Stack(
-        children: [
-          _buildEmptyState(),
-          Positioned(
-            top: 12,
-            left: 0,
-            right: 0,
-            child: _buildRoundDivider(widget.session.currentRound),
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFFF8F4FF),
+              const Color(0xFFEEF2FF).withOpacity(0.8),
+              const Color(0xFFFFE8F5).withOpacity(0.7),
+            ],
+            stops: const [0.0, 0.5, 1.0],
           ),
-        ],
+        ),
+        child: Stack(
+          children: [
+            _buildEmptyState(),
+            Positioned(
+              top: 12,
+              left: 0,
+              right: 0,
+              child: _buildRoundDivider(widget.session.currentRound),
+            ),
+          ],
+        ),
       );
     }
 
@@ -283,11 +313,25 @@ class _ChatMessagesListState extends State<ChatMessagesList> {
       items.add(_buildRoundDivider(widget.session.currentRound));
     }
     
-    return ListView(
-      controller: widget.controller,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      physics: const BouncingScrollPhysics(),
-      children: items,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFF8F4FF),
+            const Color(0xFFEEF2FF).withOpacity(0.8),
+            const Color(0xFFFFE8F5).withOpacity(0.7),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: ListView(
+        controller: widget.controller,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        physics: const BouncingScrollPhysics(),
+        children: items,
+      ),
     );
   }
 }

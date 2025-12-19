@@ -55,12 +55,11 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.blue.shade50,
-            Colors.blue.shade100.withOpacity(0.6),
-            Colors.purple.shade50.withOpacity(0.8),
+            const Color(0xFFD8B4FE),
+            const Color(0xFFC4B5FD).withOpacity(0.9),
+            const Color(0xFFA78BFA).withOpacity(0.85),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
       ),
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),

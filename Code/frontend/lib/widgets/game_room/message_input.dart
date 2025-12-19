@@ -14,10 +14,17 @@ class MessageInput extends StatelessWidget {
     if (isDrawer) {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          gradient: LinearGradient(
+            colors: [
+              Colors.deepPurple.shade400,
+              Colors.deepPurple.shade600,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           border: Border(
             top: BorderSide(
-              color: Colors.grey.shade300,
+              color: Colors.deepPurple.shade700,
               width: 1,
             ),
           ),
@@ -32,14 +39,15 @@ class MessageInput extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock, color: Colors.grey.shade500, size: 20),
+              Icon(Icons.lock, color: Colors.white.withOpacity(0.9), size: 20),
               const SizedBox(width: 8),
               Text(
                 'Drawer cannot chat',
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: Colors.white.withOpacity(0.9),
                   fontSize: 14,
                   fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
