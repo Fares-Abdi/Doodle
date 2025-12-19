@@ -3,12 +3,50 @@ import 'package:flutter/material.dart';
 class MessageInput extends StatelessWidget {
   final TextEditingController controller;
   final void Function(String) onSend;
+  final bool isDrawer;
 
-  const MessageInput({Key? key, required this.controller, required this.onSend}) : super(key: key);
+  const MessageInput({Key? key, required this.controller, required this.onSend, this.isDrawer = false}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+
+    if (isDrawer) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          border: Border(
+            top: BorderSide(
+              color: Colors.grey.shade300,
+              width: 1,
+            ),
+          ),
+        ),
+        padding: EdgeInsets.only(
+          left: 12,
+          right: 12,
+          top: 8,
+          bottom: 8 + viewInsetsBottom,
+        ),
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock, color: Colors.grey.shade500, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Drawer cannot chat',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(

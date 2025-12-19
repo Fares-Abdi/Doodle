@@ -31,36 +31,81 @@ class ChatPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check if current user is the drawer
+    final currentPlayer = session.players.firstWhere(
+      (p) => p.id == userId,
+      orElse: () => Player(id: userId, name: 'Player'),
+    );
+    final isDrawer = currentPlayer.isDrawing;
+
     return Container(
-      width: 350,
-      color: Colors.white,
+      width: 300,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 24,
+            offset: const Offset(-4, 0),
+          ),
+        ],
+      ),
       child: Column(
         children: [
+          // Enhanced header
           ChatHeader(playerCount: playerCount),
 
-          // Leaderboard
+          // Leaderboard section
           Container(
             height: leaderboardHeight,
             clipBehavior: Clip.none,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.grey.shade50,
+                  Colors.white,
+                ],
+              ),
+            ),
             child: EnhancedLeaderboard(
               session: session,
               userId: userId,
             ),
           ),
 
-          // Divider (passed in from parent so it can hold state/animations)
+          // Enhanced divider
           dividerWidget,
 
-          // Chat messages area (Expanded)
+          // Chat messages area with gradient background
           Expanded(
             child: Container(
-              color: Colors.grey.shade100,
-              child: ChatMessagesList(messages: messages, controller: scrollController, userId: userId, session: session),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.grey.shade50,
+                    Colors.grey.shade100,
+                  ],
+                ),
+              ),
+              child: ChatMessagesList(
+                messages: messages,
+                controller: scrollController,
+                userId: userId,
+                session: session,
+              ),
             ),
           ),
 
-          // Message input - fixed at bottom of panel
-          MessageInput(controller: chatController, onSend: onSend),
+          // Enhanced message input
+          MessageInput(
+            controller: chatController,
+            onSend: onSend,
+            isDrawer: isDrawer,
+          ),
         ],
       ),
     );
