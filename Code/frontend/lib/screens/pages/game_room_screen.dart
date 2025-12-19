@@ -431,6 +431,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
       'photoURL': currentPlayer.photoURL,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
       'isCorrectGuess': isCorrectGuess,
+      'roundNumber': _currentGameSession.currentRound,
     });
 
     _chatMessageController.clear();

@@ -21,6 +21,10 @@ class ChatBubble extends StatelessWidget {
       orElse: () => Player(id: userId, name: message['userName'] as String? ?? 'Unknown'),
     );
     final userName = player.name;
+    
+    // Get player's avatar color
+    final avatarColorName = player.photoURL ?? 'blue';
+    final playerColor = AvatarColorHelper.getColorFromName(avatarColorName);
 
     if (isCorrectGuess) {
       return Align(
@@ -68,12 +72,9 @@ class ChatBubble extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  gradient: isCurrentUser
-                      ? LinearGradient(
-                          colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade500],
-                        )
-                      : null,
-                  color: !isCurrentUser ? Colors.grey.shade100 : null,
+                  gradient: LinearGradient(
+                    colors: [playerColor.withOpacity(0.8), playerColor],
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -85,14 +86,14 @@ class ChatBubble extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
-                        color: isCurrentUser ? Colors.white.withOpacity(0.9) : Colors.grey.shade700,
+                        color: Colors.white.withOpacity(0.9),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       messageText,
-                      style: TextStyle(
-                        color: isCurrentUser ? Colors.white : Colors.black87,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
                       ),

@@ -10,30 +10,79 @@ class ChatMessagesList extends StatelessWidget {
 
   const ChatMessagesList({Key? key, required this.messages, required this.controller, required this.userId, required this.session}) : super(key: key);
 
+  Widget _buildRoundDivider(int roundNumber) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 2,
+              color: Colors.grey.shade400,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              'round ${roundNumber + 1}', // ADD BACK THE + 1
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              height: 2,
+              color: Colors.grey.shade400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final List<Widget> items = [];
+    
     if (messages.isEmpty) {
-      return Center(
-        child: Text(
-          'Chat messages\n(Drag divider)',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 14,
+      // No messages yet, just show current round divider
+      items.add(_buildRoundDivider(session.currentRound));
+    } else {
+      // Track the last round we've shown a divider for
+      int? lastDividerRound;
+      
+      for (int i = 0; i < messages.length; i++) {
+        final message = messages[i];
+        final messageRound = message['roundNumber'] ?? 0;
+        
+        // Show divider if this is a new round we haven't shown yet
+        if (lastDividerRound == null || messageRound != lastDividerRound) {
+          items.add(_buildRoundDivider(messageRound));
+          lastDividerRound = messageRound;
+        }
+        
+        items.add(
+          ChatBubble(
+            message: message,
+            isCurrentUser: message['userId'] == userId,
+            session: session,
           ),
-        ),
-      );
+        );
+      }
+      
+      // If current round has no messages yet, show its divider at the end
+      if (lastDividerRound != session.currentRound) {
+        items.add(_buildRoundDivider(session.currentRound));
+      }
     }
-
-    return ListView.builder(
+    
+    return ListView(
       controller: controller,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      itemCount: messages.length,
-      itemBuilder: (context, index) {
-        final message = messages[index];
-        final isCurrentUser = message['userId'] == userId;
-        return ChatBubble(message: message, isCurrentUser: isCurrentUser, session: session);
-      },
+      children: items,
     );
   }
 }

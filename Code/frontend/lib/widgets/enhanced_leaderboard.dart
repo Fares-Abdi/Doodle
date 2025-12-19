@@ -49,12 +49,26 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        child: Column(
-          children: _buildLeaderboard(context),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.blue.shade50,
+            Colors.blue.shade100.withOpacity(0.6),
+            Colors.purple.shade50.withOpacity(0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Column(
+            children: _buildLeaderboard(context),
+          ),
         ),
       ),
     );
