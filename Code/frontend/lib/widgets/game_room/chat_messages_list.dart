@@ -242,15 +242,6 @@ class _ChatMessagesListState extends State<ChatMessagesList> {
                       letterSpacing: 0.3,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Start guessing to chat with players!',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
                 ],
               ),
             ),

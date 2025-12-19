@@ -84,14 +84,14 @@ class PlayerAvatar extends StatelessWidget {
                     fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w500,
                   ),
                 ),
-                if (isHighlighted)
-                  Text(
-                    '${player.score} pts',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 12,
-                    ),
+                Text(
+                  '${player.score}',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
+                ),
               ],
             ),
           ),

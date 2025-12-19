@@ -178,67 +178,37 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                             height: 48,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: medalType != null
-                                  ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: _getMedalGradient(medalType),
-                                    )
-                                  : null,
-                              color: medalType == null ? Colors.grey.shade300 : null,
-                              boxShadow: medalType != null
-                                  ? [
-                                      BoxShadow(
-                                        color: _getMedalColor(medalType).withOpacity(0.6),
-                                        blurRadius: 6,
-                                      ),
-                                    ]
-                                  : null,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.deepPurple.shade300,
+                                  Colors.deepPurple.shade500,
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.deepPurple.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ],
                             ),
                             child: Center(
-                              child: medalType != null
-                                  ? Icon(
-                                      _getMedalIcon(medalType),
-                                      size: 28,
-                                      color: Colors.white,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          offset: const Offset(0, 1),
-                                          blurRadius: 2,
-                                        ),
-                                      ],
-                                    )
-                                  : Text(
-                                      '${index + 1}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          // Crown for gold
-                          if (medalType == 'gold')
-                            Positioned(
-                              top: -8,
-                              left: 0,
-                              right: 0,
-                              child: Center(
-                                child: Icon(
-                                  Icons.stars_rounded,
-                                  size: 20,
-                                  color: const Color(0xFFFFED4E),
-                                  shadows: [
-                                    Shadow(
-                                      color: const Color(0xFFFFD700),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
+                              child: Icon(
+                                player.isDrawing ? Icons.brush : Icons.lightbulb_outline,
+                                size: 24,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    offset: const Offset(0, 1),
+                                    blurRadius: 2,
+                                  ),
+                                ],
                               ),
                             ),
+                          ),
                         ],
                       ),
                       const SizedBox(width: 12),
@@ -278,24 +248,6 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                               ],
                             ),
                             const SizedBox(height: 2),
-                            Row(
-                              children: [
-                                Icon(
-                                  player.isDrawing ? Icons.brush : Icons.lightbulb_outline,
-                                  size: 11,
-                                  color: Colors.grey.shade600,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  player.isDrawing ? 'Drawing' : 'Guessing',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade600,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
@@ -323,7 +275,7 @@ class _EnhancedLeaderboardState extends State<EnhancedLeaderboard>
                           ),
                         ),
                         child: Text(
-                          '${player.score} pts',
+                          '${player.score}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
