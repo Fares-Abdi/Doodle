@@ -904,250 +904,197 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
     );
   }
 
-  Widget _buildRoomCard(GameSession game, int index) {
-    final roomColors = [
-      [Colors.pink, Colors.pinkAccent],
-      [Colors.blue, Colors.blueAccent],
-      [Colors.green, Colors.greenAccent],
-      [Colors.orange, Colors.orangeAccent],
-      [Colors.teal, Colors.tealAccent],
-    ];
-    
-    final colorSet = roomColors[index % roomColors.length];
+Widget _buildRoomCard(GameSession game, int index) {
+  final roomColors = [
+    Color(0xFF6366F1), // Indigo
+    Color(0xFFEC4899), // Pink
+    Color(0xFF10B981), // Emerald
+    Color(0xFFF59E0B), // Amber
+    Color(0xFF3B82F6), // Blue
+  ];
+  
+  final color = roomColors[index % roomColors.length];
+  final isFullRoom = game.players.length >= game.maxPlayers;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [colorSet[0].withOpacity(0.1), colorSet[1].withOpacity(0.05)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorSet[0].withOpacity(0.3),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colorSet[0].withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.08),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: color.withOpacity(0.2),
+        width: 1.5,
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () async {
-            await playButtonClick();
-            
-            final prefs = await SharedPreferences.getInstance();
-            final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
-            
-            await _gameService.joinGame(
-              game.id,
-              Player(
-                id: _playerId,
-                name: _playerName,
-                photoURL: savedAvatarColor,
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.15),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: isFullRoom ? null : () async {
+          await playButtonClick();
+          
+          final prefs = await SharedPreferences.getInstance();
+          final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
+          
+          await _gameService.joinGame(
+            game.id,
+            Player(
+              id: _playerId,
+              name: _playerName,
+              photoURL: savedAvatarColor,
+            ),
+          );
+          if (context.mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => GameRoomScreen(
+                  gameId: game.id,
+                  userId: _playerId,
+                  userName: _playerName,
+                ),
               ),
             );
-            if (context.mounted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => GameRoomScreen(
-                    gameId: game.id,
-                    userId: _playerId,
-                    userName: _playerName,
-                  ),
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Left accent bar
+              Container(
+                width: 4,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-              );
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Room header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ),
+              const SizedBox(width: 16),
+              
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Room ${index + 1}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Room info grid
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Players
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
                         Text(
-                          'Players',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '${game.players.length}/${game.maxPlayers}',
+                          'Room ${index + 1}',
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
-                      ],
-                    ),
-                    
-                    // Rounds
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Rounds',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
                           ),
-                        ),
-                        Text(
-                          '${game.maxRounds}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                          decoration: BoxDecoration(
+                            color: _getDifficultyColor(game.wordDifficulty).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                        ),
-                      ],
-                    ),
-                    
-                    // Time
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Time/Round',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '${game.roundTimeLimit}s',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    // Difficulty
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Difficulty',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          game.wordDifficulty[0].toUpperCase() + game.wordDifficulty.substring(1),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: game.wordDifficulty == 'easy'
-                                ? Colors.green
-                                : game.wordDifficulty == 'hard'
-                                    ? Colors.red
-                                    : Colors.orange,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Join button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      await playButtonClick();
-                      
-                      final prefs = await SharedPreferences.getInstance();
-                      final savedAvatarColor = prefs.getString('player_avatar_$_playerId');
-                      
-                      await _gameService.joinGame(
-                        game.id,
-                        Player(
-                          id: _playerId,
-                          name: _playerName,
-                          photoURL: savedAvatarColor,
-                        ),
-                      );
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GameRoomScreen(
-                              gameId: game.id,
-                              userId: _playerId,
-                              userName: _playerName,
+                          child: Text(
+                            game.wordDifficulty.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: _getDifficultyColor(game.wordDifficulty),
+                              letterSpacing: 0.5,
                             ),
                           ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
+                        ),
+                      ],
                     ),
-                    child: const Text(
-                      'Join Room',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.people, size: 14, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${game.players.length}/${game.maxPlayers}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Icon(Icons.refresh, size: 14, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${game.maxRounds}R',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Icon(Icons.timer, size: 14, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${game.roundTimeLimit}s',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
+                  ],
+                ),
+              ),
+              
+              // Join button
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: isFullRoom ? Colors.grey.shade200 : color,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  isFullRoom ? 'Full' : 'Join',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isFullRoom ? Colors.grey.shade600 : Colors.white,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
+
+Color _getDifficultyColor(String difficulty) {
+  switch (difficulty.toLowerCase()) {
+    case 'easy':
+      return Colors.green;
+    case 'hard':
+      return Colors.red;
+    default:
+      return Colors.orange;
+  }
+}
   Widget _buildAvailableRoomsHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
