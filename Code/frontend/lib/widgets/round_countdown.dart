@@ -187,29 +187,39 @@ class _RoundCountdownState extends State<RoundCountdown>
         ),
         const SizedBox(height: 20),
         if (isDrawer)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Column(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
+              const SizedBox(height: 20),
+              const Text(
+                'DRAW THIS WORD',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w600,
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade400.withOpacity(0.2),
-                  border: Border.all(
-                    color: Colors.orange.shade400,
-                    width: 2,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Time to show your skills!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                widget.session.currentWord ?? '???',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 52,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.yellow.shade300,
+                  letterSpacing: 2,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 30,
+                      color: Colors.yellow.shade600.withOpacity(0.8),
+                      offset: const Offset(0, 2),
+                    ),
+                    Shadow(
+                      blurRadius: 50,
+                      color: Colors.amber.withOpacity(0.4),
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
               ),
             ],

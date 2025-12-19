@@ -778,7 +778,7 @@ void onPanStart(DragStartDetails details) {
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 12,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -786,23 +786,90 @@ void onPanStart(DragStartDetails details) {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Text(
-                  _getHintText(),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDrawingAllowed ? Colors.green : Colors.blue,
-                    letterSpacing: 2,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GUESS THE WORD',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue.shade600,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildAnimatedHintDisplay(),
+                  ],
                 ),
               ),
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildAnimatedHintDisplay() {
+    final word = widget.gameSession?.currentWord ?? '';
+    if (word.isEmpty) return const SizedBox.shrink();
+
+    // Calculate font size based on word length
+    double fontSize;
+    double boxWidth;
+    double spacing;
+    
+    if (word.length > 12) {
+      fontSize = 12;
+      boxWidth = 20;
+      spacing = 2;
+    } else if (word.length > 8) {
+      fontSize = 14;
+      boxWidth = 24;
+      spacing = 3;
+    } else {
+      fontSize = 20;
+      boxWidth = 32;
+      spacing = 4;
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: word.split('').asMap().entries.map((entry) {
+          final index = entry.key;
+          final char = entry.value;
+          final isRevealed = revealedIndices.contains(index);
+
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: spacing),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: isRevealed ? 1 : 0),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.elasticOut,
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: isRevealed ? value : 1.0,
+                  child: Text(
+                    char == ' ' ? '' : (isRevealed ? char.toUpperCase() : '_'),
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                      color: isRevealed ? Colors.green.shade600 : Colors.blue.shade400,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }

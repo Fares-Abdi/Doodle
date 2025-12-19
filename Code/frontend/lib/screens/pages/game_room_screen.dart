@@ -290,8 +290,6 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
             _leaderboardHeight = newHeight.clamp(0.0, 0.95);
             _targetLeaderboardHeight = _leaderboardHeight;
             _heightBeforeKeyboard = _leaderboardHeight; // Keep this synced
-            final percentage = (_leaderboardHeight * 100).toStringAsFixed(1);
-            print('📊 [GAME] Divider dragging: $percentage%');
           });
         },
         onVerticalDragEnd: (_) {
