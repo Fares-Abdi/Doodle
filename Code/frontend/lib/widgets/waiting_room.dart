@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
+import 'dart:ui' show ImageFilter;
 import '../models/game_session.dart';
 import '../services/game_service.dart';
 import '../utils/audio_mixin.dart';
@@ -592,53 +593,151 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   }
 
   void _showExitConfirmation() {
-    final isCreator = widget.session.players
-        .firstWhere((p) => p.id == widget.userId, orElse: () => Player(id: widget.userId, name: 'Player'))
-        .isCreator;
-
     showDialog(
       context: context,
+      barrierColor: Colors.black.withOpacity(0.6),
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Exit Game?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Are you sure you want to leave the game?'),
-              if (isCreator)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: Text(
-                    'As the creator, you can also destroy the room for everyone.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.deepPurple.shade800.withOpacity(0.85),
+                    Colors.deepPurple.shade900.withOpacity(0.85),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.purpleAccent.withOpacity(0.3),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.deepPurple.withOpacity(0.5),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.shade600.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.purpleAccent.withOpacity(0.4),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.exit_to_app_rounded,
+                    size: 32,
+                    color: Colors.purpleAccent,
                   ),
                 ),
-            ],
+                const SizedBox(height: 20),
+                
+                // Title
+                const Text(
+                  'Leave Waiting Room?',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                
+                // Description
+                Text(
+                  'Are you sure you want to exit? You can rejoin later.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.8),
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 28),
+                
+                // Buttons
+                Column(
+                  children: [
+                    // Cancel Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: Colors.purpleAccent.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Stay',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Leave Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _gameService.leaveGame(widget.session.id);
+                          widget.onBack();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Leave Room',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _gameService.leaveGame(widget.session.id);
-                widget.onBack();
-              },
-              child: const Text('Leave', style: TextStyle(color: Colors.orange)),
-            ),
-            if (isCreator)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _gameService.destroyRoom(widget.session.id);
-                  widget.onBack();
-                },
-                child: const Text('Destroy Room', style: TextStyle(color: Colors.red)),
-              ),
-          ],
+        ),
         );
       },
     );

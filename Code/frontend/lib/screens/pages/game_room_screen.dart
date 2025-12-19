@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' show lerpDouble;
+import 'dart:ui' show lerpDouble, ImageFilter;
 import 'dart:async';
 import '../../models/game_session.dart';
 import '../../services/game_service.dart';
@@ -97,21 +97,115 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
           showDialog(
             context: context,
             barrierDismissible: false,
+            barrierColor: Colors.black.withOpacity(0.6),
             builder: (BuildContext ctx) {
-              return AlertDialog(
-                title: const Text('Room Closed'),
-                content: Text(message),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      // Return to lobby
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('OK'),
+              return BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Dialog(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.deepPurple.shade800.withOpacity(0.85),
+                          Colors.deepPurple.shade900.withOpacity(0.85),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.redAccent.withOpacity(0.3),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icon
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade600.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.redAccent.withOpacity(0.4),
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.lock_rounded,
+                          size: 32,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Title
+                      const Text(
+                        'Room Closed',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // Message
+                      Text(
+                        message,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.8),
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 28),
+                      
+                      // Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            // Return to lobby
+                            Navigator.of(context).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Return to Lobby',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              );
+                ),
+              ),);
             },
           );
         }
@@ -473,24 +567,149 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
   void _showExitConfirmation() {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withOpacity(0.6),
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Exit Game?'),
-          content: const Text('Are you sure you want to leave the game? Your progress will be lost.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.deepPurple.shade800.withOpacity(0.85),
+                    Colors.deepPurple.shade900.withOpacity(0.85),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.purpleAccent.withOpacity(0.3),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.deepPurple.withOpacity(0.5),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.shade600.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.purpleAccent.withOpacity(0.4),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.exit_to_app_rounded,
+                    size: 32,
+                    color: Colors.purpleAccent,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Title
+                const Text(
+                  'Exit Game?',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                
+                // Description
+                Text(
+                  'Your progress will be lost. Are you sure?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.8),
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 28),
+                
+                // Buttons
+                Column(
+                  children: [
+                    // Cancel Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: Colors.purpleAccent.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Continue Playing',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Exit Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _gameService.leaveGame(widget.gameId);
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Exit Game',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _gameService.leaveGame(widget.gameId);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Exit', style: TextStyle(color: Colors.red)),
-            ),
-          ],
+          ),
+        ),
         );
       },
     );
