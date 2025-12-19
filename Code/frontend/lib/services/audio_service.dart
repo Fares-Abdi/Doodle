@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum AudioType { music, sfx }
 
@@ -27,6 +28,9 @@ class AudioService {
 
   /// Initialize audio service
   Future<void> initialize() async {
+    // Load saved settings from SharedPreferences
+    await _loadSettings();
+    
     // Configure music player
     await _musicPlayer.setReleaseMode(ReleaseMode.loop);
     await _musicPlayer.setVolume(_musicVolume);
@@ -50,6 +54,24 @@ class AudioService {
         ),
       ),
     );
+  }
+
+  /// Load saved audio settings from SharedPreferences
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isMusicEnabled = prefs.getBool('isMusicEnabled') ?? true;
+    _isSfxEnabled = prefs.getBool('isSfxEnabled') ?? true;
+    _musicVolume = prefs.getDouble('musicVolume') ?? 0.5;
+    _sfxVolume = prefs.getDouble('sfxVolume') ?? 0.7;
+  }
+
+  /// Save audio settings to SharedPreferences
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isMusicEnabled', _isMusicEnabled);
+    await prefs.setBool('isSfxEnabled', _isSfxEnabled);
+    await prefs.setDouble('musicVolume', _musicVolume);
+    await prefs.setDouble('sfxVolume', _sfxVolume);
   }
 
   /// Play background music
@@ -120,17 +142,20 @@ class AudioService {
   Future<void> setMusicVolume(double volume) async {
     _musicVolume = volume.clamp(0.0, 1.0);
     await _musicPlayer.setVolume(_musicVolume);
+    await _saveSettings();
   }
 
   /// Set SFX volume (0.0 - 1.0)
   Future<void> setSfxVolume(double volume) async {
     _sfxVolume = volume.clamp(0.0, 1.0);
     await _sfxPlayer.setVolume(_sfxVolume);
+    await _saveSettings();
   }
 
   /// Toggle music on/off
   Future<void> toggleMusic({bool? enabled}) async {
     _isMusicEnabled = enabled ?? !_isMusicEnabled;
+    await _saveSettings();
     if (!_isMusicEnabled) {
       await pauseMusic();
     } else if (_currentMusicTrack != null) {
@@ -139,8 +164,9 @@ class AudioService {
   }
 
   /// Toggle SFX on/off
-  void toggleSfx({bool? enabled}) {
+  Future<void> toggleSfx({bool? enabled}) async {
     _isSfxEnabled = enabled ?? !_isSfxEnabled;
+    await _saveSettings();
   }
 
   /// Dispose audio service
