@@ -77,9 +77,13 @@ class _WaitingRoomState extends State<WaitingRoom> with TickerProviderStateMixin
   }
 
   void _ensureLobbyMusicPlaying() async {
-    // Only play lobby music if no music is currently playing
-    // This prevents overwriting game music that's paused/resumed during lifecycle changes
+    // Only play lobby music if music is enabled
     final audioService = getAudioService();
+    
+    // Don't play if music is disabled
+    if (!audioService.isMusicEnabled) {
+      return;
+    }
     
     // If game music is paused but still set, don't override it - let the parent handle resume
     if (audioService.currentMusicTrack == GameSounds.gameMusic) {

@@ -66,7 +66,14 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
       // Check if this screen is still in focus (simple check - if context is mounted)
       if (!context.mounted) return;
       
-      final currentTrack = getAudioService().currentMusicTrack;
+      final audioService = getAudioService();
+      
+      // Don't play music if it's disabled
+      if (!audioService.isMusicEnabled) {
+        return;
+      }
+      
+      final currentTrack = audioService.currentMusicTrack;
       
       // Don't override game music - the game screen will handle its own music
       if (currentTrack == GameSounds.gameMusic) {
@@ -74,7 +81,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
       }
       
       // Only play/resume if we're not already playing the lobby music
-      if (currentTrack == GameSounds.lobbyMusic && getAudioService().isMusicPlaying) {
+      if (currentTrack == GameSounds.lobbyMusic && audioService.isMusicPlaying) {
         // Already playing, don't restart
         return;
       }
@@ -82,7 +89,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
       // If no music is playing or it's a different track, play lobby music
       if (currentTrack != GameSounds.lobbyMusic) {
         playBackgroundMusic(GameSounds.lobbyMusic);
-      } else if (!getAudioService().isMusicPlaying) {
+      } else if (!audioService.isMusicPlaying) {
         // Same track but paused, just resume
         resumeBackgroundMusic();
       }
@@ -90,8 +97,14 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
   }
 
   void _initializeAudio() async {
-    // Only play lobby music if not already playing
-    final currentTrack = getAudioService().currentMusicTrack;
+    final audioService = getAudioService();
+    
+    // Only play lobby music if music is enabled and not already playing
+    if (!audioService.isMusicEnabled) {
+      return;
+    }
+    
+    final currentTrack = audioService.currentMusicTrack;
     if (currentTrack != GameSounds.lobbyMusic) {
       await playBackgroundMusic(GameSounds.lobbyMusic);
     }
@@ -1024,6 +1037,10 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
                                     child: InkWell(
                                       onTap: () async {
                                         await audioService.toggleMusic();
+                                        // If music was just enabled, start playing
+                                        if (audioService.isMusicEnabled) {
+                                          await playBackgroundMusic(GameSounds.lobbyMusic);
+                                        }
                                         setState(() {});
                                       },
                                       borderRadius: BorderRadius.circular(12),
