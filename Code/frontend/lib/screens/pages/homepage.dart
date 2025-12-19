@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:doodle/widgets/simple_drawing_canvas.dart';
+import '../../widgets/custom_loading_screen.dart';
 
 class SketchPredictionPage extends StatefulWidget {
   const SketchPredictionPage({Key? key}) : super(key: key);
@@ -146,7 +147,10 @@ class _SketchPredictionPageState extends State<SketchPredictionPage> {
             child: Column(
               children: [
                 if (_isLoading)
-                  const CircularProgressIndicator()
+                  CompactLoadingSpinner(
+                    color: Colors.deepPurple,
+                    size: 32,
+                  )
                 else if (_prediction.isNotEmpty)
                   Text(
                     'Prediction: $_prediction',

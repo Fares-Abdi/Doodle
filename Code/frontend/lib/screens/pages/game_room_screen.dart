@@ -10,6 +10,7 @@ import '../../widgets/round_transition.dart';
 import '../../widgets/game_over_screen.dart';
 import '../../widgets/game_board.dart';
 import '../../widgets/game_room/chat_panel.dart';
+import '../../widgets/custom_loading_screen.dart';
 
 class GameRoomScreen extends StatefulWidget {
   final String gameId;
@@ -725,7 +726,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
           builder: (context, snapshot) {
             // Show loading indicator while waiting for data
             if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              return const CustomLoadingScreen(
+                message: 'Loading game...',
+              );
             }
 
             final session = snapshot.data!;

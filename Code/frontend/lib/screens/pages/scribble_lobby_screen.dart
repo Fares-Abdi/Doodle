@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/game_session.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:math' as math;
+import '../../widgets/custom_loading_screen.dart';
 
 
 class ScribbleLobbyScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
   late String _playerId;
   late String _playerName;
   String _webSocketUrl = '';
+  List<GameSession> _cachedGames = [];
 
   late AnimationController _floatingController;
   late AnimationController _logoController;
@@ -396,15 +398,13 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
     return StreamBuilder<List<GameSession>>(
       stream: _gameService.getAvailableGames(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
-            ),
-          );
+        // Update cache with new data if available
+        if (snapshot.hasData && snapshot.data != null) {
+          _cachedGames = snapshot.data!;
         }
-        
-        final games = snapshot.data!;
+
+        // Use cached games or empty list
+        final games = _cachedGames;
         
         if (games.isEmpty) {
           return Center(
