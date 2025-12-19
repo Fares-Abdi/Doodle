@@ -24,7 +24,7 @@ class ChatMessagesList extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
-              'round ${roundNumber + 1}', // ADD BACK THE + 1
+              'round ${roundNumber }', // ADD BACK THE + 1
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
