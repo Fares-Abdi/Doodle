@@ -79,7 +79,7 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
       // If no music is playing or it's a different track, play lobby music
       if (currentTrack != GameSounds.lobbyMusic) {
         playBackgroundMusic(GameSounds.lobbyMusic);
-      } else {
+      } else if (!getAudioService().isMusicPlaying) {
         // Same track but paused, just resume
         resumeBackgroundMusic();
       }

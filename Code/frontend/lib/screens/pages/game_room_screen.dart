@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' show lerpDouble;
+import 'dart:async';
 import '../../models/game_session.dart';
 import '../../services/game_service.dart';
 import '../../utils/audio_mixin.dart';
@@ -36,6 +37,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
   final TextEditingController _chatMessageController = TextEditingController();
   final List<Map<String, dynamic>> _messages = [];
   late ScrollController _scrollController;
+  late StreamSubscription<GameSession> _gameStreamSubscription;
+  late StreamSubscription<Map<String, dynamic>> _chatMessagesSubscription;
+  late StreamSubscription<Map<String, dynamic>> _notificationsSubscription;
   
   // Divider variables
   late double _leaderboardHeight;
@@ -66,20 +70,22 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
     );
     
     // Listen for chat messages
-    _gameService.wsService.chatMessages.listen((message) {
+    _chatMessagesSubscription = _gameService.wsService.chatMessages.listen((message) {
+      if (!mounted) return;
       if (message['gameId'] == widget.gameId) {
         setState(() {
           _messages.add(message['payload']);
         });
         // Auto scroll to latest message
         Future.delayed(const Duration(milliseconds: 100), () {
-          _scrollToBottom();
+          if (mounted) _scrollToBottom();
         });
       }
     });
 
     // Listen for server notifications such as room destruction
-    _gameService.wsService.notifications.listen((notif) {
+    _notificationsSubscription = _gameService.wsService.notifications.listen((notif) {
+      if (!mounted) return;
       try {
         if (notif['type'] == 'game_destroyed' && notif['gameId'] == widget.gameId) {
           final message = (notif['payload'] != null && notif['payload']['message'] != null)
@@ -146,7 +152,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
   }
 
   void _listenToGameState() {
-    _gameStream.listen((gameSession) {
+    _gameStreamSubscription = _gameStream.listen((gameSession) {
+      if (!mounted) return;
+      
       // Store the current game session for access in message handling
       _currentGameSession = gameSession;
       
@@ -156,7 +164,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
         if (getAudioService().currentMusicTrack != GameSounds.gameMusic) {
           stopBackgroundMusic();
           Future.delayed(const Duration(milliseconds: 300), () {
-            playBackgroundMusic(GameSounds.gameMusic);
+            if (mounted) playBackgroundMusic(GameSounds.gameMusic);
           });
         }
       }
@@ -165,7 +173,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
       if (gameSession.state == GameState.roundEnd) {
         // Music will be handled by waiting room when it's shown
         // But we should make sure to stop game music
-        stopBackgroundMusic();
+        if (mounted) stopBackgroundMusic();
       }
       
       // When game is over, ensure lobby music will play when we return
@@ -370,15 +378,24 @@ class _GameRoomScreenState extends State<GameRoomScreen> with TickerProviderStat
     // Remove observer when screen is disposed
     WidgetsBinding.instance.removeObserver(this);
     
+    // Cancel all stream subscriptions to prevent memory leaks and stop listening to game updates
+    _gameStreamSubscription.cancel();
+    _chatMessagesSubscription.cancel();
+    _notificationsSubscription.cancel();
+    
     // Send leave_game message to server when leaving the room
     _gameService.leaveGame(widget.gameId);
+    
+    // Play lobby music when returning to the lobby
+    // The stream subscriptions are now cancelled, so game updates won't affect audio anymore
+    playBackgroundMusic(GameSounds.lobbyMusic);
+    
     _chatPanelController.dispose();
     _dragController.dispose();
     _dividerExpandController.dispose();
     _chatMessageController.dispose();
     _scrollController.dispose();
-    // Ensure lobby music plays when returning to lobby
-    playBackgroundMusic(GameSounds.lobbyMusic);
+    
     super.dispose();
   }
 
