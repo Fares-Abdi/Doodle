@@ -10,6 +10,7 @@ import '../../models/game_session.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:math' as math;
 import '../../widgets/custom_loading_screen.dart';
+import 'sketch_recognition_test_screen.dart';
 
 
 class ScribbleLobbyScreen extends StatefulWidget {
@@ -819,6 +820,161 @@ class _ScribbleLobbyScreenState extends State<ScribbleLobbyScreen>
         ),
       ),
     ),
+    );
+  }
+
+  Widget _buildTestCard() {
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0, -0.5),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: _logoController,
+        curve: Curves.easeOut,
+      )),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.cyan.shade700,
+              Colors.blue.shade600,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.cyan.withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              // Decorative circles
+              Positioned(
+                top: -30,
+                right: -30,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -20,
+                left: -20,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              
+              // Content
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            "🧪 TEST MODE",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Test Sketch Recognition",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Draw something and let AI guess what you drew!",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await playButtonClick();
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SketchRecognitionTestScreen(
+                                  serverUrl: _webSocketUrl,
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.brush),
+                        label: const Text(
+                          "Start Test",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.cyan.shade700,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 8,
+                          shadowColor: Colors.black45,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1704,6 +1860,10 @@ Color _getDifficultyColor(String difficulty) {
                           _buildHeader(),
                           // Featured card
                           _buildFeaturedCard(),
+                          
+                          const SizedBox(height: 20),
+                          // Test card
+                          _buildTestCard(),
                           
                           const SizedBox(height: 24),
                           // Available rooms section
